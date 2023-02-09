@@ -17,25 +17,25 @@ from unittest import mock
 
 from . import utils
 
-from structr import (
-    StructROverrideBase,
-    StructRMappedOverrideBase,
-    StructRSection,
+from propertree import (
+    PTreeOverrideBase,
+    PTreeMappedOverrideBase,
+    PTreeSection,
 )
 
 
-class StructRCustomOverrideBase(StructROverrideBase):
+class PTreeCustomOverrideBase(PTreeOverrideBase):
     pass
 
 
-class StructRInput(StructRCustomOverrideBase):
+class PTreeInput(PTreeCustomOverrideBase):
 
     @classmethod
     def _override_keys(cls):
         return ['input']
 
 
-class StructRMessage(StructROverrideBase):
+class PTreeMessage(PTreeOverrideBase):
 
     @classmethod
     def _override_keys(cls):
@@ -45,14 +45,14 @@ class StructRMessage(StructROverrideBase):
         return self.content
 
 
-class StructRMeta(StructROverrideBase):
+class PTreeMeta(PTreeOverrideBase):
 
     @classmethod
     def _override_keys(cls):
         return ['meta']
 
 
-class StructRSettings(StructROverrideBase):
+class PTreeSettings(PTreeOverrideBase):
 
     @classmethod
     def _override_keys(cls):
@@ -63,25 +63,25 @@ class StructRSettings(StructROverrideBase):
         return "i am a property"
 
 
-class StructRAction(StructROverrideBase):
+class PTreeAction(PTreeOverrideBase):
 
     @classmethod
     def _override_keys(cls):
         return ['action', 'altaction']
 
 
-class StructRRaws(StructROverrideBase):
+class PTreeRaws(PTreeOverrideBase):
 
     @classmethod
     def _override_keys(cls):
         return ['raws']
 
 
-class StructRMappedGroupBase(StructRMappedOverrideBase):
+class PTreeMappedGroupBase(PTreeMappedOverrideBase):
 
     @classmethod
     def _override_mapped_member_types(cls):
-        return [StructRSettings, StructRAction]
+        return [PTreeSettings, PTreeAction]
 
     @property
     def all(self):
@@ -95,14 +95,14 @@ class StructRMappedGroupBase(StructRMappedOverrideBase):
         return _all
 
 
-class StructRMappedGroupLogicalOpt(StructRMappedGroupBase):
+class PTreeMappedGroupLogicalOpt(PTreeMappedGroupBase):
 
     @classmethod
     def _override_keys(cls):
         return ['and', 'or', 'not']
 
 
-class StructRMappedGroup(StructRMappedGroupBase):
+class PTreeMappedGroup(PTreeMappedGroupBase):
 
     @classmethod
     def _override_keys(cls):
@@ -111,10 +111,10 @@ class StructRMappedGroup(StructRMappedGroupBase):
     @classmethod
     def _override_mapped_member_types(cls):
         return super()._override_mapped_member_types() + \
-                    [StructRMappedGroupLogicalOpt]
+                    [PTreeMappedGroupLogicalOpt]
 
 
-class StructRMappedRefsBase(StructRMappedOverrideBase):
+class PTreeMappedRefsBase(PTreeMappedOverrideBase):
 
     @classmethod
     def _override_mapped_member_types(cls):
@@ -122,14 +122,14 @@ class StructRMappedRefsBase(StructRMappedOverrideBase):
         return []
 
 
-class StructRMappedRefsLogicalOpt(StructRMappedRefsBase):
+class PTreeMappedRefsLogicalOpt(PTreeMappedRefsBase):
 
     @classmethod
     def _override_keys(cls):
         return ['and', 'or', 'not']
 
 
-class StructRMappedRefs(StructRMappedRefsBase):
+class PTreeMappedRefs(PTreeMappedRefsBase):
 
     @classmethod
     def _override_keys(cls):
@@ -138,17 +138,17 @@ class StructRMappedRefs(StructRMappedRefsBase):
     @classmethod
     def _override_mapped_member_types(cls):
         return super()._override_mapped_member_types() + \
-                    [StructRMappedRefsLogicalOpt]
+                    [PTreeMappedRefsLogicalOpt]
 
 
-class TestStructR(utils.BaseTestCase):
+class TestPTree(utils.BaseTestCase):
 
     def test_struct(self):
-        overrides = [StructRInput, StructRMessage, StructRSettings,
-                     StructRMeta]
+        overrides = [PTreeInput, PTreeMessage, PTreeSettings,
+                     PTreeMeta]
         with open('examples/checks.yaml') as fd:
-            root = StructRSection('fruit tastiness', yaml.safe_load(fd.read()),
-                                  override_handlers=overrides)
+            root = PTreeSection('fruit tastiness', yaml.safe_load(fd.read()),
+                                override_handlers=overrides)
             for leaf in root.leaf_sections:
                 self.assertEqual(leaf.meta.category, 'tastiness')
                 self.assertEqual(leaf.root.name, 'fruit tastiness')
@@ -187,21 +187,21 @@ class TestStructR(utils.BaseTestCase):
                                      {'operator': 'eq', 'value': 'red'})
 
     def test_empty_struct(self):
-        overrides = [StructRInput, StructRMessage, StructRSettings]
-        root = StructRSection('root', content={}, override_handlers=overrides)
+        overrides = [PTreeInput, PTreeMessage, PTreeSettings]
+        root = PTreeSection('root', content={}, override_handlers=overrides)
         for leaf in root.leaf_sections:
             self.assertEqual(leaf.input.type, 'dict')
 
     def test_struct_w_mapping(self):
         with open('examples/checks2.yaml') as fd:
-            root = StructRSection('atest', yaml.safe_load(fd.read()),
-                                  override_handlers=[StructRMessage,
-                                                     StructRMappedGroup])
+            root = PTreeSection('atest', yaml.safe_load(fd.read()),
+                                override_handlers=[PTreeMessage,
+                                                   PTreeMappedGroup])
             for leaf in root.leaf_sections:
                 self.assertTrue(leaf.name in ['item1', 'item2', 'item3',
                                               'item4', 'item5'])
                 if leaf.name == 'item1':
-                    self.assertEqual(type(leaf.group), StructRMappedGroup)
+                    self.assertEqual(type(leaf.group), PTreeMappedGroup)
                     self.assertEqual(len(leaf.group), 1)
                     self.assertEqual(leaf.group.settings.plum, 'pie')
                     self.assertEqual(leaf.group.action.eat, 'now')
@@ -256,8 +256,8 @@ class TestStructR(utils.BaseTestCase):
             - settings:
                 result: false
         """
-        root = StructRSection('mgtest', yaml.safe_load(_yaml),
-                              override_handlers=[StructRMappedGroup])
+        root = PTreeSection('mgtest', yaml.safe_load(_yaml),
+                            override_handlers=[PTreeMappedGroup])
         for leaf in root.leaf_sections:
             self.assertEqual(len(leaf.group), 1)
             self.assertEqual(len(leaf.group.settings), 2)
@@ -275,8 +275,8 @@ class TestStructR(utils.BaseTestCase):
               - settings:
                   result: false
         """
-        root = StructRSection('mgtest', yaml.safe_load(_yaml),
-                              override_handlers=[StructRMappedGroup])
+        root = PTreeSection('mgtest', yaml.safe_load(_yaml),
+                            override_handlers=[PTreeMappedGroup])
         for leaf in root.leaf_sections:
             self.assertEqual(len(leaf.group), 1)
             self.assertEqual(len(getattr(leaf.group, 'and').settings), 2)
@@ -297,8 +297,8 @@ class TestStructR(utils.BaseTestCase):
               settings:
                 result: false
         """
-        root = StructRSection('mgtest', yaml.safe_load(_yaml),
-                              override_handlers=[StructRMappedGroup])
+        root = PTreeSection('mgtest', yaml.safe_load(_yaml),
+                            override_handlers=[PTreeMappedGroup])
         for leaf in root.leaf_sections:
             self.assertEqual(len(leaf.group), 1)
             self.assertEqual(len(getattr(leaf.group, 'and').settings), 1)
@@ -319,8 +319,8 @@ class TestStructR(utils.BaseTestCase):
             - settings:
                 result: false
         """
-        root = StructRSection('mgtest', yaml.safe_load(_yaml),
-                              override_handlers=[StructRMappedGroup])
+        root = PTreeSection('mgtest', yaml.safe_load(_yaml),
+                            override_handlers=[PTreeMappedGroup])
         for leaf in root.leaf_sections:
             self.assertEqual(len(leaf.group), 1)
             self.assertEqual(len(getattr(leaf.group, 'or').settings), 1)
@@ -346,8 +346,8 @@ class TestStructR(utils.BaseTestCase):
               and: [ref2, ref3]
             - ref4
         """
-        root = StructRSection('mgtest', yaml.safe_load(_yaml),
-                              override_handlers=[StructRMappedRefs])
+        root = PTreeSection('mgtest', yaml.safe_load(_yaml),
+                            override_handlers=[PTreeMappedRefs])
         results = []
         for leaf in root.leaf_sections:
             self.assertEqual(leaf.name, 'item1')
@@ -369,8 +369,8 @@ class TestStructR(utils.BaseTestCase):
         self.assertEqual(sorted(results),
                          sorted(['ref1', 'ref2', 'ref3', 'ref4']))
 
-    @mock.patch.object(StructRSection, 'post_hook')
-    @mock.patch.object(StructRSection, 'pre_hook')
+    @mock.patch.object(PTreeSection, 'post_hook')
+    @mock.patch.object(PTreeSection, 'pre_hook')
     def test_hooks_called(self, mock_pre_hook, mock_post_hook):
         _yaml = """
         myroot:
@@ -381,15 +381,15 @@ class TestStructR(utils.BaseTestCase):
             settings:
               clutch: on
         """
-        StructRSection('hooktest', yaml.safe_load(_yaml),
-                       override_handlers=[StructRMappedGroup],
-                       run_hooks=False)
+        PTreeSection('hooktest', yaml.safe_load(_yaml),
+                     override_handlers=[PTreeMappedGroup],
+                     run_hooks=False)
         self.assertFalse(mock_pre_hook.called)
         self.assertFalse(mock_post_hook.called)
 
-        StructRSection('hooktest', yaml.safe_load(_yaml),
-                       override_handlers=[StructRMappedGroup],
-                       run_hooks=True)
+        PTreeSection('hooktest', yaml.safe_load(_yaml),
+                     override_handlers=[PTreeMappedGroup],
+                     run_hooks=True)
         self.assertTrue(mock_pre_hook.called)
         self.assertTrue(mock_post_hook.called)
 
@@ -410,8 +410,8 @@ class TestStructR(utils.BaseTestCase):
               settings:
                 clutch: on
         """
-        root = StructRSection('resolvtest', yaml.safe_load(_yaml),
-                              override_handlers=[StructRMappedGroup])
+        root = PTreeSection('resolvtest', yaml.safe_load(_yaml),
+                            override_handlers=[PTreeMappedGroup])
         resolved = []
         for leaf in root.leaf_sections:
             resolved.append(leaf.resolve_path)
@@ -450,9 +450,9 @@ class TestStructR(utils.BaseTestCase):
             def get(self, key):
                 return self.context.get(key)
 
-        root = StructRSection('contexttest', yaml.safe_load(_yaml),
-                              override_handlers=[StructRMappedGroup],
-                              context=ContextHandler())
+        root = PTreeSection('contexttest', yaml.safe_load(_yaml),
+                            override_handlers=[PTreeMappedGroup],
+                            context=ContextHandler())
         for leaf in root.leaf_sections:
             for setting in leaf.group.members:
                 self.assertIsNone(setting.context.get('k1'))
@@ -467,8 +467,8 @@ class TestStructR(utils.BaseTestCase):
           bytes: 1
           stringbits: '8'
         """
-        root = StructRSection('rawtest', yaml.safe_load(_yaml),
-                              override_handlers=[StructRRaws])
+        root = PTreeSection('rawtest', yaml.safe_load(_yaml),
+                            override_handlers=[PTreeRaws])
         for leaf in root.leaf_sections:
             self.assertEqual(leaf.raws.red, 'meat')
             self.assertEqual(leaf.raws.bytes, 1)

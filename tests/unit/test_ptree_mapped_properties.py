@@ -15,16 +15,16 @@ import yaml
 
 from . import utils
 
-from structr import (
-    StructROverrideBase,
-    StructRMappedOverrideBase,
-    StructROverrideRawType,
-    StructRSection
+from propertree import (
+    PTreeOverrideBase,
+    PTreeMappedOverrideBase,
+    PTreeOverrideRawType,
+    PTreeSection
 )
-from structr.structr import MappedOverrideState
+from propertree.propertree import MappedOverrideState
 
 
-class StructRAssertionAttr(StructROverrideBase):
+class PTreeAssertionAttr(PTreeOverrideBase):
 
     @classmethod
     def _override_keys(cls):
@@ -35,7 +35,7 @@ class StructRAssertionAttr(StructROverrideBase):
         return self.content
 
 
-class StructRAssertion(StructRMappedOverrideBase):
+class PTreeAssertion(PTreeMappedOverrideBase):
 
     @classmethod
     def _override_keys(cls):
@@ -43,24 +43,24 @@ class StructRAssertion(StructRMappedOverrideBase):
 
     @classmethod
     def _override_mapped_member_types(cls):
-        return [StructRAssertionAttr]
+        return [PTreeAssertionAttr]
 
 
-class StructRAssertionsBase(StructRMappedOverrideBase):
+class PTreeAssertionsBase(PTreeMappedOverrideBase):
 
     @classmethod
     def _override_mapped_member_types(cls):
-        return [StructRAssertion]
+        return [PTreeAssertion]
 
 
-class StructRAssertionsLogicalOpt(StructRAssertionsBase):
+class PTreeAssertionsLogicalOpt(PTreeAssertionsBase):
 
     @classmethod
     def _override_keys(cls):
         return ['and', 'or', 'not']
 
 
-class StructRAssertions(StructRAssertionsBase):
+class PTreeAssertions(PTreeAssertionsBase):
 
     @classmethod
     def _override_keys(cls):
@@ -69,24 +69,24 @@ class StructRAssertions(StructRAssertionsBase):
     @classmethod
     def _override_mapped_member_types(cls):
         return super()._override_mapped_member_types() + \
-                    [StructRAssertionsLogicalOpt]
+                    [PTreeAssertionsLogicalOpt]
 
 
-class StructRStrGroupBase(StructRMappedOverrideBase):
+class PTreeStrGroupBase(PTreeMappedOverrideBase):
 
     @classmethod
     def _override_mapped_member_types(cls):
-        return [StructROverrideRawType]
+        return [PTreeOverrideRawType]
 
 
-class StructRStrGroupLogicalOpt(StructRStrGroupBase):
+class PTreeStrGroupLogicalOpt(PTreeStrGroupBase):
 
     @classmethod
     def _override_keys(cls):
         return ['and', 'or', 'not']
 
 
-class StructRStrGroups(StructRStrGroupBase):
+class PTreeStrGroups(PTreeStrGroupBase):
 
     @classmethod
     def _override_keys(cls):
@@ -95,10 +95,10 @@ class StructRStrGroups(StructRStrGroupBase):
     @classmethod
     def _override_mapped_member_types(cls):
         return super()._override_mapped_member_types() + \
-                    [StructRStrGroupLogicalOpt]
+                    [PTreeStrGroupLogicalOpt]
 
 
-class TestStructRMappedProperties(utils.BaseTestCase):
+class TestPTreeMappedProperties(utils.BaseTestCase):
 
     def test_mapping_single_member_full(self):
         """
@@ -115,8 +115,8 @@ class TestStructRMappedProperties(utils.BaseTestCase):
             ops: [gt]
             message: it failed
         """
-        root = StructRSection('mappingtest', yaml.safe_load(_yaml),
-                              override_handlers=[StructRAssertions])
+        root = PTreeSection('mappingtest', yaml.safe_load(_yaml),
+                            override_handlers=[PTreeAssertions])
         checked = []
         for leaf in root.leaf_sections:
             checked.append(leaf.assertions._override_name)
@@ -147,8 +147,8 @@ class TestStructRMappedProperties(utils.BaseTestCase):
           ops: [gt]
           message: it failed
         """
-        root = StructRSection('mappingtest', yaml.safe_load(_yaml),
-                              override_handlers=[StructRAssertions])
+        root = PTreeSection('mappingtest', yaml.safe_load(_yaml),
+                            override_handlers=[PTreeAssertions])
         checked = []
         for leaf in root.leaf_sections:
             checked.append(leaf.assertions._override_name)
@@ -183,8 +183,8 @@ class TestStructRMappedProperties(utils.BaseTestCase):
             ops: [lt]
             message: it also failed
         """
-        root = StructRSection('mappingtest', yaml.safe_load(_yaml),
-                              override_handlers=[StructRAssertions])
+        root = PTreeSection('mappingtest', yaml.safe_load(_yaml),
+                            override_handlers=[PTreeAssertions])
         checked = []
         for leaf in root.leaf_sections:
             checked.append(leaf.assertions._override_name)
@@ -226,15 +226,15 @@ class TestStructRMappedProperties(utils.BaseTestCase):
             ops: [lt]
             message: it also failed
         """
-        root = StructRSection('mappingtest', yaml.safe_load(_yaml),
-                              override_handlers=[StructRAssertions])
+        root = PTreeSection('mappingtest', yaml.safe_load(_yaml),
+                            override_handlers=[PTreeAssertions])
         checked = []
         for leaf in root.leaf_sections:
             checked.append(leaf.assertions._override_name)
-            self.assertEqual(type(leaf.assertions), StructRAssertions)
+            self.assertEqual(type(leaf.assertions), PTreeAssertions)
             self.assertEqual(len(leaf.assertions), 1)
             self.assertEqual(len(leaf.assertions.assertion), 2)
-            self.assertEqual(type(leaf.assertions.assertion), StructRAssertion)
+            self.assertEqual(type(leaf.assertions.assertion), PTreeAssertion)
             for assertion in leaf.assertions.assertion:
                 self.assertEqual(len(assertion), 5)
                 self.assertEqual(assertion._override_name, 'assertion')
@@ -274,8 +274,8 @@ class TestStructRMappedProperties(utils.BaseTestCase):
               ops: [lt]
               message: it also failed
         """
-        root = StructRSection('mappingtest', yaml.safe_load(_yaml),
-                              override_handlers=[StructRAssertions])
+        root = PTreeSection('mappingtest', yaml.safe_load(_yaml),
+                            override_handlers=[PTreeAssertions])
         checked = []
         for leaf in root.leaf_sections:
             checked.append(leaf.assertions._override_name)
@@ -317,17 +317,17 @@ class TestStructRMappedProperties(utils.BaseTestCase):
             - b
             - c
         """
-        root = StructRSection('mappingtest', yaml.safe_load(_yaml),
-                              override_handlers=[StructRStrGroups])
+        root = PTreeSection('mappingtest', yaml.safe_load(_yaml),
+                            override_handlers=[PTreeStrGroups])
         vals = []
         ops_items = 0
         ops_members = 0
         for leaf in root.leaf_sections:
-            self.assertEqual(type(leaf.strgroups), StructRStrGroups)
+            self.assertEqual(type(leaf.strgroups), PTreeStrGroups)
             for groups in leaf.strgroups:
                 self.assertEqual(type(groups), MappedOverrideState)
                 for member in groups:
-                    self.assertEqual(type(member), StructRStrGroupLogicalOpt)
+                    self.assertEqual(type(member), PTreeStrGroupLogicalOpt)
                     self.assertEqual(len(member), 1)
                     for item in member:
                         ops_members += 1
@@ -335,7 +335,7 @@ class TestStructRMappedProperties(utils.BaseTestCase):
                         self.assertEqual(len(item), 3)
                         for x in item:
                             ops_items += 1
-                            self.assertEqual(type(x), StructROverrideRawType)
+                            self.assertEqual(type(x), PTreeOverrideRawType)
                             vals.append(str(x))
 
         self.assertEqual(ops_members, 1)
@@ -344,13 +344,13 @@ class TestStructRMappedProperties(utils.BaseTestCase):
 
     def process_optgroup(self, assertiongroup, opname):
         """
-        Process a StructRAssertionsLogicalOpt mapping that can also have nested
+        Process a PTreeAssertionsLogicalOpt mapping that can also have nested
         mappings.
 
-        Returns a list of StructRAssertionAttr values found.
+        Returns a list of PTreeAssertionAttr values found.
         """
         vals = []
-        self.assertEqual(type(assertiongroup), StructRAssertionsLogicalOpt)
+        self.assertEqual(type(assertiongroup), PTreeAssertionsLogicalOpt)
         for optgroup in assertiongroup:
             self.assertEqual(optgroup._override_name, opname)
             for member in optgroup:
@@ -361,7 +361,7 @@ class TestStructRMappedProperties(utils.BaseTestCase):
                     else:
                         self.assertEqual(len(member), 1)
 
-                    self.assertEqual(type(member), StructRAssertion)
+                    self.assertEqual(type(member), PTreeAssertion)
                     for assertion in member:
                         self.assertEqual(len(assertion), 1)
                         self.assertEqual(assertion._override_name, 'assertion')
@@ -389,13 +389,13 @@ class TestStructRMappedProperties(utils.BaseTestCase):
             - not:
                 key: True
         """
-        root = StructRSection('mappingtest', yaml.safe_load(_yaml),
-                              override_handlers=[StructRAssertions])
+        root = PTreeSection('mappingtest', yaml.safe_load(_yaml),
+                            override_handlers=[PTreeAssertions])
         vals = []
         opnames_to_check = ['and', 'or']
         for leaf in root.leaf_sections:
-            self.assertEqual(type(leaf), StructRSection)
-            self.assertEqual(type(leaf.assertions), StructRAssertions)
+            self.assertEqual(type(leaf), PTreeSection)
+            self.assertEqual(type(leaf.assertions), PTreeAssertions)
             self.assertEqual(len(leaf.assertions), 1)
             for assertions in leaf.assertions:
                 self.assertEqual(assertions._override_name, 'assertions')

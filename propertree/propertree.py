@@ -25,7 +25,7 @@ def log(msg):
         sys.stderr.write("DEBUG: {}\n".format(msg))
 
 
-class StructRException(Exception):
+class PTreeException(Exception):
     pass
 
 
@@ -169,7 +169,7 @@ class OverrideBase(abc.ABC):
         """ Each implementation must have their own means of lookups. """
 
 
-class StructROverrideBase(OverrideBase):
+class PTreeOverrideBase(OverrideBase):
 
     def __getattr__(self, name):
         log("{}.__getattr__: unmapped name={}".format(self._whoami, name))
@@ -181,7 +181,7 @@ class StructROverrideBase(OverrideBase):
                              format(self._whoami, name))
 
 
-class StructROverrideRawType(OverrideBase):
+class PTreeOverrideRawType(OverrideBase):
 
     @classmethod
     def _override_keys(cls):
@@ -315,7 +315,7 @@ class MappedOverrideState(object):
                              format(self._whoami, name))
 
 
-class StructRMappedOverrideBase(OverrideBase):
+class PTreeMappedOverrideBase(OverrideBase):
 
     def __init__(self, name, content, *args, **kwargs):
         log("creating new mapped override id={} type={} name={}".
@@ -420,10 +420,10 @@ class StructRMappedOverrideBase(OverrideBase):
                     format(self._override_name))
                 mapping_members = self._override_mapped_member_types()
                 mapping_members.append(self.__class__)
-                s = StructRSection(name, content,
-                                   resolve_path=self._override_path,
-                                   override_handlers=mapping_members,
-                                   context=self._context)
+                s = PTreeSection(name, content,
+                                 resolve_path=self._override_path,
+                                 override_handlers=mapping_members,
+                                 context=self._context)
 
                 # Now see what members got resolved (if any)
                 for name in self.member_keys:
@@ -450,20 +450,20 @@ class StructRMappedOverrideBase(OverrideBase):
                             format(key))
                         state.add_obj(obj)
 
-                for obj in s.get_resolved_by_type(StructROverrideRawType):
+                for obj in s.get_resolved_by_type(PTreeOverrideRawType):
                     state.add_obj(obj)
             else:
                 log("content type '{}' not parsable ({}) so "
                     "treating as {}".format(type(content),
                                             self.valid_parse_content_types(),
-                                            StructROverrideRawType.__name__)),
+                                            PTreeOverrideRawType.__name__)),
 
                 if type(content) != list:
                     content = [content]
 
                 for item in content:
-                    obj = StructROverrideRawType(item, item, self.context,
-                                                 self._override_path)
+                    obj = PTreeOverrideRawType(item, item, self.context,
+                                               self._override_path)
                     state.add_obj(obj)
 
             log("pushing updated mapping state to stack")
@@ -499,14 +499,14 @@ class StructRMappedOverrideBase(OverrideBase):
                              format(self._whoami, name))
 
 
-class StructROverrideManager(object):
+class PTreeOverrideManager(object):
 
     def __init__(self, handlers=None, manager=None, context=None):
         self.allow_stacking = False
         self._resolved = {}
         self._resolved_mapped = {}
         if not handlers:
-            handlers = [StructROverrideRawType]
+            handlers = [PTreeOverrideRawType]
 
         if manager:
             # clone it
@@ -519,7 +519,7 @@ class StructROverrideManager(object):
             self._handlers = []
             self._mappings = []
             for h in handlers:
-                if issubclass(h, StructRMappedOverrideBase):
+                if issubclass(h, PTreeMappedOverrideBase):
                     self._mappings.append(h)
                 else:
                     self._handlers.append(h)
@@ -591,10 +591,10 @@ class StructROverrideManager(object):
                 add_member = True
 
         if resolved_obj and (self.allow_stacking or add_member):
-            if isinstance(resolved_obj, StructRMappedOverrideBase):
+            if isinstance(resolved_obj, PTreeMappedOverrideBase):
                 log("{} is an instance of {}".
                     format(resolved_obj.__class__.__name__,
-                           StructRMappedOverrideBase.__name__))
+                           PTreeMappedOverrideBase.__name__))
                 resolved_obj.add_state(name, content,
                                        flush_current=flush_mapped)
             else:
@@ -602,7 +602,7 @@ class StructROverrideManager(object):
                     "therefore assumed to "
                     "be a member or unmapped override".
                     format(id(resolved_obj), resolved_obj.__class__.__name__,
-                           StructRMappedOverrideBase.__name__))
+                           PTreeMappedOverrideBase.__name__))
                 resolved_obj.add_state(name, content)
         else:
             obj = handler(name, content, self._context, resolve_path)
@@ -614,7 +614,7 @@ class StructROverrideManager(object):
                    flush_mapped))
         if name == content:
             log("resolved principle override with raw content")
-            self.add_resolved(name, content, StructROverrideRawType,
+            self.add_resolved(name, content, PTreeOverrideRawType,
                               resolve_path)
             return
 
@@ -658,7 +658,7 @@ class StructROverrideManager(object):
         return _r
 
 
-class StructRSection(object):
+class PTreeSection(object):
     def __init__(self, name, content, parent=None, root=None,
                  override_handlers=None, override_manager=None,
                  run_hooks=False, resolve_path=None, context=None):
@@ -680,10 +680,10 @@ class StructRSection(object):
             self.resolve_path = name
 
         if override_manager:
-            self.manager = StructROverrideManager(manager=override_manager)
+            self.manager = PTreeOverrideManager(manager=override_manager)
         else:
-            self.manager = StructROverrideManager(handlers=override_handlers,
-                                                  context=context)
+            self.manager = PTreeOverrideManager(handlers=override_handlers,
+                                                context=context)
 
         self.run()
 
@@ -726,7 +726,7 @@ class StructRSection(object):
             self.manager.switch_to_stacked()
             for _ref, item in enumerate(self.content):
                 log("{}.run: item={}".format(self.__class__.__name__, item))
-                if StructROverrideRawType.check_is_raw_value(item):
+                if PTreeOverrideRawType.check_is_raw_value(item):
                     self.manager.resolve(item, item, self.resolve_path)
                 else:
                     flush_mapped = True
@@ -737,8 +737,8 @@ class StructRSection(object):
         else:
             self.manager.allow_stacking = False
             if type(self.content) != dict:
-                raise StructRException("undefined override '{}'".
-                                       format(self.name))
+                raise PTreeException("undefined override '{}'".
+                                     format(self.name))
 
             log("content is dict")
             # first get all overrides at this level
@@ -749,16 +749,16 @@ class StructRSection(object):
                     unresolved[name] = content
 
             for name, content in unresolved.items():
-                if StructROverrideRawType.check_is_raw_value(content):
+                if PTreeOverrideRawType.check_is_raw_value(content):
                     log("{}.run: terminating override={} with raw content "
                         "'{}'".
                         format(self.__class__.__name__, name, content))
                     continue
 
                 rpath = "{}.{}".format(self.resolve_path, name)
-                s = StructRSection(name, content, parent=self, root=self.root,
-                                   override_manager=self.manager,
-                                   resolve_path=rpath)
+                s = PTreeSection(name, content, parent=self, root=self.root,
+                                 override_manager=self.manager,
+                                 resolve_path=rpath)
                 self.sections.append(s)
 
         if self.root == self and self.run_hooks:

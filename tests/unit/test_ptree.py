@@ -15,19 +15,18 @@ from unittest import mock
 
 import yaml
 
-from propertree import (
+from propertree.propertree2 import (
     PTreeOverrideBase,
+    PTreeLogicalGrouping,
     PTreeMappedOverrideBase,
     PTreeSection,
+    OverrideRegistry,
 )
 from . import utils
 
 
-class PTreeCustomOverrideBase(PTreeOverrideBase):
-    pass
-
-
-class PTreeInput(PTreeCustomOverrideBase):
+class PTreeInput(PTreeOverrideBase):
+    _override_autoregister = False
 
     @classmethod
     def _override_keys(cls):
@@ -35,6 +34,7 @@ class PTreeInput(PTreeCustomOverrideBase):
 
 
 class PTreeMessage(PTreeOverrideBase):
+    _override_autoregister = False
 
     @classmethod
     def _override_keys(cls):
@@ -45,6 +45,7 @@ class PTreeMessage(PTreeOverrideBase):
 
 
 class PTreeMeta(PTreeOverrideBase):
+    _override_autoregister = False
 
     @classmethod
     def _override_keys(cls):
@@ -52,6 +53,7 @@ class PTreeMeta(PTreeOverrideBase):
 
 
 class PTreeSettings(PTreeOverrideBase):
+    _override_autoregister = False
 
     @classmethod
     def _override_keys(cls):
@@ -63,20 +65,27 @@ class PTreeSettings(PTreeOverrideBase):
 
 
 class PTreeAction(PTreeOverrideBase):
+    _override_autoregister = False
 
     @classmethod
     def _override_keys(cls):
         return ['action', 'altaction']
 
 
-class PTreeRaws(PTreeOverrideBase):
+class PTreeLiterals(PTreeOverrideBase):
+    _override_autoregister = False
 
     @classmethod
     def _override_keys(cls):
-        return ['raws']
+        return ['literals']
 
 
-class PTreeMappedGroupBase(PTreeMappedOverrideBase):
+class PTreeMappedGroup(PTreeMappedOverrideBase):
+    _override_autoregister = False
+
+    @classmethod
+    def _override_keys(cls):
+        return ['group']
 
     @classmethod
     def _override_mapped_member_types(cls):
@@ -94,62 +103,52 @@ class PTreeMappedGroupBase(PTreeMappedOverrideBase):
         return _all
 
 
-class PTreeMappedGroupLogicalOpt(PTreeMappedGroupBase):
+class PTreeLogicalGroupingWithStrRefs(PTreeLogicalGrouping):
+    _override_autoregister = False
 
-    @classmethod
-    def _override_keys(cls):
-        return ['and', 'or', 'not']
+    @property
+    def result(self):
+        items = []
+        if type(self.content) is list:
+            for item in self.content:
+                if isinstance(item, str):
+                    items.append(item)
+        else:
+            items.append(self.content)
 
-
-class PTreeMappedGroup(PTreeMappedGroupBase):
-
-    @classmethod
-    def _override_keys(cls):
-        return ['group']
-
-    @classmethod
-    def _override_mapped_member_types(cls):
-        return super()._override_mapped_member_types() + \
-                    [PTreeMappedGroupLogicalOpt]
+        return items
 
 
-class PTreeMappedRefsBase(PTreeMappedOverrideBase):
-
-    @classmethod
-    def _override_mapped_member_types(cls):
-        # has no members
-        return []
-
-
-class PTreeMappedRefsLogicalOpt(PTreeMappedRefsBase):
-
-    @classmethod
-    def _override_keys(cls):
-        return ['and', 'or', 'not']
-
-
-class PTreeMappedRefs(PTreeMappedRefsBase):
+class PTreeMappedRefs(PTreeMappedOverrideBase):
+    _override_autoregister = False
+    _override_logical_grouping_type = PTreeLogicalGroupingWithStrRefs
 
     @classmethod
     def _override_keys(cls):
         return ['refs']
 
-    @classmethod
-    def _override_mapped_member_types(cls):
-        return super()._override_mapped_member_types() + \
-                    [PTreeMappedRefsLogicalOpt]
-
 
 class TestPTree(utils.BaseTestCase):
 
+    def setUp(self):
+        super().setUp()
+        self.requirements = [PTreeLogicalGrouping, PTreeInput,
+                             PTreeMessage, PTreeMeta, PTreeSettings,
+                             PTreeAction, PTreeLiterals, PTreeMappedGroup,
+                             PTreeMappedRefs]
+        OverrideRegistry.register(self.requirements)
+
+    def tearDown(self):
+        OverrideRegistry.unregister(self.requirements)
+        super().tearDown()
+
     def test_struct(self):
-        overrides = [PTreeInput, PTreeMessage, PTreeSettings,
-                     PTreeMeta]
         with open('examples/checks.yaml') as fd:
-            root = PTreeSection('fruit tastiness', yaml.safe_load(fd.read()),
-                                override_handlers=overrides)
+            root = PTreeSection('fruit tastiness', yaml.safe_load(fd.read()))
             for leaf in root.leaf_sections:
-                self.assertEqual(leaf.meta.category, 'tastiness')
+                if leaf.name == 'meta':
+                    self.assertEqual(leaf.meta.category, 'tastiness')
+
                 self.assertEqual(leaf.root.name, 'fruit tastiness')
                 self.assertEqual(leaf.input.type, 'dict')
                 if leaf.parent.name == 'apples':
@@ -174,6 +173,7 @@ class TestPTree(utils.BaseTestCase):
                         self.assertEqual(leaf.settings.color,
                                          {'operator': 'eq', 'value': 'brown'})
                 else:
+                    self.assertEqual(leaf.parent.name, 'oranges')
                     self.assertEqual(str(leaf.message),
                                      'they make good juice.')
                     self.assertEqual(str(leaf.message_alt),
@@ -186,16 +186,13 @@ class TestPTree(utils.BaseTestCase):
                                      {'operator': 'eq', 'value': 'red'})
 
     def test_empty_struct(self):
-        overrides = [PTreeInput, PTreeMessage, PTreeSettings]
-        root = PTreeSection('root', content={}, override_handlers=overrides)
+        root = PTreeSection('root', content={})
         for leaf in root.leaf_sections:
             self.assertEqual(leaf.input.type, 'dict')
 
     def test_struct_w_mapping(self):
         with open('examples/checks2.yaml') as fd:
-            root = PTreeSection('atest', yaml.safe_load(fd.read()),
-                                override_handlers=[PTreeMessage,
-                                                   PTreeMappedGroup])
+            root = PTreeSection('atest', yaml.safe_load(fd.read()))
             for leaf in root.leaf_sections:
                 self.assertTrue(leaf.name in ['item1', 'item2', 'item3',
                                               'item4', 'item5'])
@@ -255,8 +252,7 @@ class TestPTree(utils.BaseTestCase):
             - settings:
                 result: false
         """
-        root = PTreeSection('mgtest', yaml.safe_load(_yaml),
-                            override_handlers=[PTreeMappedGroup])
+        root = PTreeSection('mgtest', yaml.safe_load(_yaml))
         for leaf in root.leaf_sections:
             self.assertEqual(len(leaf.group), 1)
             self.assertEqual(len(leaf.group.settings), 2)
@@ -274,14 +270,15 @@ class TestPTree(utils.BaseTestCase):
               - settings:
                   result: false
         """
-        root = PTreeSection('mgtest', yaml.safe_load(_yaml),
-                            override_handlers=[PTreeMappedGroup])
+        root = PTreeSection('mgtest', yaml.safe_load(_yaml))
+        results = []
         for leaf in root.leaf_sections:
             self.assertEqual(len(leaf.group), 1)
-            self.assertEqual(len(getattr(leaf.group, 'and').settings), 2)
-            results = [s.result for s in getattr(leaf.group, 'and').settings]
+            for prop in leaf.group.members:
+                for item in prop:
+                    results.append(item.result)
 
-        self.assertEqual(results, [True, False])
+        self.assertEqual(results, [False])
 
     def test_struct_w_metagroup_w_multiple_logical_opts(self):
         _yaml = """
@@ -296,17 +293,15 @@ class TestPTree(utils.BaseTestCase):
               settings:
                 result: false
         """
-        root = PTreeSection('mgtest', yaml.safe_load(_yaml),
-                            override_handlers=[PTreeMappedGroup])
+        root = PTreeSection('mgtest', yaml.safe_load(_yaml))
+        results = []
         for leaf in root.leaf_sections:
             self.assertEqual(len(leaf.group), 1)
-            self.assertEqual(len(getattr(leaf.group, 'and').settings), 1)
-            self.assertEqual(len(getattr(leaf.group, 'or').settings), 2)
-            results = [s.result for s in getattr(leaf.group, 'and').settings]
-            self.assertEqual(results, [False])
-            results = [s.result for s in getattr(leaf.group, 'or').settings]
+            for prop in leaf.group.members:
+                for item in prop:
+                    results.append(item.result)
 
-        self.assertEqual(results, [True, False])
+        self.assertEqual(results, [False, True])
 
     def test_struct_w_metagroup_w_mixed_list(self):
         _yaml = """
@@ -318,22 +313,14 @@ class TestPTree(utils.BaseTestCase):
             - settings:
                 result: false
         """
-        root = PTreeSection('mgtest', yaml.safe_load(_yaml),
-                            override_handlers=[PTreeMappedGroup])
+        root = PTreeSection('mgtest', yaml.safe_load(_yaml))
+        results = []
         for leaf in root.leaf_sections:
             self.assertEqual(len(leaf.group), 1)
-            self.assertEqual(len(getattr(leaf.group, 'or').settings), 1)
-            self.assertEqual(len(getattr(leaf.group, 'or')), 1)
-            results = []
-            for groupitem in leaf.group:
-                for item in groupitem:
-                    if item._override_name == 'or':
-                        for settings in item:
-                            for entry in settings:
-                                results.append(entry.result)
-                    else:
-                        for settings in item:
-                            results.append(settings.result)
+            for group in leaf.group:
+                for prop in group.members:
+                    for item in prop:
+                        results.append(item.result)
 
         self.assertEqual(sorted(results), sorted([True, False]))
 
@@ -343,30 +330,22 @@ class TestPTree(utils.BaseTestCase):
           refs:
             - or: ref1
               and: [ref2, ref3]
-            - ref4
         """
-        root = PTreeSection('mgtest', yaml.safe_load(_yaml),
-                            override_handlers=[PTreeMappedRefs])
+        root = PTreeSection('mgtest', yaml.safe_load(_yaml))
         results = []
         for leaf in root.leaf_sections:
             self.assertEqual(leaf.name, 'item1')
-            for refs in leaf.refs:
-                for item in refs:
+            for member in leaf.refs.members:
+                for item in member:
                     self.assertTrue(item._override_name in ['and', 'or',
                                                             'ref4'])
                     if item._override_name == 'or':
-                        self.assertEqual(len(item), 1)
-                        for subitem in item.members:
-                            results.append(subitem._override_name)
+                        results.extend(item.result)
                     elif item._override_name == 'and':
-                        self.assertEqual(len(item), 1)
-                        for subitem in item.members:
-                            results.append(subitem._override_name)
-                    else:
-                        results.append(item._override_name)
+                        results.extend(item.result)
 
         self.assertEqual(sorted(results),
-                         sorted(['ref1', 'ref2', 'ref3', 'ref4']))
+                         sorted(['ref1', 'ref2', 'ref3']))
 
     @mock.patch.object(PTreeSection, 'post_hook')
     @mock.patch.object(PTreeSection, 'pre_hook')
@@ -381,13 +360,11 @@ class TestPTree(utils.BaseTestCase):
               clutch: on
         """
         PTreeSection('hooktest', yaml.safe_load(_yaml),
-                     override_handlers=[PTreeMappedGroup],
                      run_hooks=False)
         self.assertFalse(mock_pre_hook.called)
         self.assertFalse(mock_post_hook.called)
 
         PTreeSection('hooktest', yaml.safe_load(_yaml),
-                     override_handlers=[PTreeMappedGroup],
                      run_hooks=True)
         self.assertTrue(mock_pre_hook.called)
         self.assertTrue(mock_post_hook.called)
@@ -409,8 +386,7 @@ class TestPTree(utils.BaseTestCase):
               settings:
                 clutch: on
         """
-        root = PTreeSection('resolvtest', yaml.safe_load(_yaml),
-                            override_handlers=[PTreeMappedGroup])
+        root = PTreeSection('resolvtest', yaml.safe_load(_yaml))
         resolved = []
         for leaf in root.leaf_sections:
             resolved.append(leaf.resolve_path)
@@ -450,7 +426,6 @@ class TestPTree(utils.BaseTestCase):
                 return self.context.get(key)
 
         root = PTreeSection('contexttest', yaml.safe_load(_yaml),
-                            override_handlers=[PTreeMappedGroup],
                             context=ContextHandler())
         for leaf in root.leaf_sections:
             for setting in leaf.group.members:
@@ -458,18 +433,17 @@ class TestPTree(utils.BaseTestCase):
                 setting.context.set('k1', 'notk2')
                 self.assertEqual(setting.context.get('k1'), 'notk2')
 
-    def test_raw_types(self):
+    def test_literal_types(self):
         _yaml = """
-        raws:
+        literals:
           red: meat
           bits: 8
           bytes: 1
           stringbits: '8'
         """
-        root = PTreeSection('rawtest', yaml.safe_load(_yaml),
-                            override_handlers=[PTreeRaws])
+        root = PTreeSection('literaltest', yaml.safe_load(_yaml))
         for leaf in root.leaf_sections:
-            self.assertEqual(leaf.raws.red, 'meat')
-            self.assertEqual(leaf.raws.bytes, 1)
-            self.assertEqual(leaf.raws.bits, 8)
-            self.assertEqual(leaf.raws.stringbits, '8')
+            self.assertEqual(leaf.literals.red, 'meat')
+            self.assertEqual(leaf.literals.bytes, 1)
+            self.assertEqual(leaf.literals.bits, 8)
+            self.assertEqual(leaf.literals.stringbits, '8')

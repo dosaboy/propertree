@@ -1,4 +1,17 @@
-#!/usr/bin/python3
+# Copyright 2024 Edward Hope-Morley
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import logging
 import os
 
@@ -6,15 +19,12 @@ log = logging.getLogger('propertree')
 format = ("%(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [-] "  # noqa, pylint: disable=W0622
           "%(message)s")
 
-dbg = os.environ.get('PROPERTREE_DEBUG')
-if dbg and dbg.lower() == 'true':
-    log.setLevel(logging.DEBUG)
-else:
-    # Force min. info level since the debug logs are very verbose and not
-    # likely useful unless specifically requested.
-    log.setLevel(logging.INFO)
-
-if log.level and not log.hasHandlers():
+if not log.hasHandlers():
     handler = logging.StreamHandler()
     handler.setFormatter(logging.Formatter(format))
     log.addHandler(handler)
+
+if os.environ.get('PROPERTREE_DEBUG', 'false').lower() == 'true':
+    log.setLevel(logging.DEBUG)
+else:
+    log.setLevel(logging.WARNING)

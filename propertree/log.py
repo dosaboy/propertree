@@ -3,7 +3,7 @@ import logging
 import os
 
 log = logging.getLogger('propertree')
-format = ("%(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [-] "
+format = ("%(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [-] "  # noqa, pylint: disable=W0622
           "%(message)s")
 
 dbg = os.environ.get('PROPERTREE_DEBUG')

@@ -36,7 +36,7 @@ class OverrideState(object):
     def __getattr__(self, name):
         # log.debug("%s.__getattr__: %s", self._whoami, name))
         _name = name.replace('_', '-')
-        if type(self.content) != dict or _name not in self.content:
+        if not isinstance(self.content, dict) or _name not in self.content:
             raise AttributeError("'{}' object has no attribute '{}'".
                                  format(self._whoami, name))
 
@@ -98,7 +98,8 @@ class OverrideBase(abc.ABC):
         self._stack = OverrideStack(self)
         self.add_state(name, content, state=state)
 
-    @abc.abstractclassmethod
+    @classmethod
+    @abc.abstractmethod
     def _override_keys(cls):
         """ Must be implemented and return a list of one or more unique keys
         that will be used to identify this override.
@@ -112,8 +113,8 @@ class OverrideBase(abc.ABC):
 
     @property
     def _override_path(self):
-        path = "{}.{}".format(self._override_resolve_path, self._override_name)
         """ This is the full resolve path for this override object. """
+        path = "{}.{}".format(self._override_resolve_path, self._override_name)
         log.debug("%s._override_path %s", self._whoami, path)
         return path
 
@@ -252,7 +253,7 @@ class MappedOverrideState(object):
         log.debug("%s %s stack: \n%s\n", self._whoami, stack_type, repr(self))
 
     def __len__(self):
-        return sum([len(self._stacks[stype]) for stype in self._stacks])
+        return sum([len(self._stacks[stype]) for stype in self._stacks])  # noqa, pylint: disable=R1728
 
     def __repr__(self):
         log.debug("%s.repr", self._whoami)
@@ -282,20 +283,20 @@ class MappedOverrideState(object):
             log.debug("%s found (len=%s)", _name, len(obj))
             if len(obj) > 1:
                 return obj
-            else:
-                m = obj.current
-                try:
-                    # Allow overrides to define a property for non-simple
-                    # content to be returned as-is.
-                    return getattr(m, _name)
-                except Exception:
-                    log.debug("%s not found in %s", _name,
-                              m.__class__.__name__)
-                    if type(m.content) not in [dict, list]:
-                        log.debug("returning raw content")
-                        return m.content
-                    else:
-                        return m
+
+            m = obj.current
+            try:
+                # Allow overrides to define a property for non-simple
+                # content to be returned as-is.
+                return getattr(m, _name)
+            except Exception:
+                log.debug("%s not found in %s", _name,
+                          m.__class__.__name__)
+                if type(m.content) not in [dict, list]:
+                    log.debug("returning raw content")
+                    return m.content
+
+                return m
 
         if _name in self._member_keys:
             # allow members to be empty
@@ -328,7 +329,8 @@ class PTreeMappedOverrideBase(OverrideBase):
 
         return name
 
-    @abc.abstractclassmethod
+    @classmethod
+    @abc.abstractmethod
     def _override_mapped_member_types(cls):
         """ All mapped override implementations must implement this as a list
         of override types that can be found within or in lieu of the primary
@@ -359,7 +361,7 @@ class PTreeMappedOverrideBase(OverrideBase):
 
     @property
     def num_members(self):
-        return sum([len(item) for item in self._stack])
+        return sum([len(item) for item in self._stack])  # noqa, pylint: disable=R1728
 
     @property
     def members(self):
@@ -382,7 +384,7 @@ class PTreeMappedOverrideBase(OverrideBase):
                       item._whoami, repr(item))
             yield item
 
-    def add_state(self, name, content, flush_current=False, state=None):
+    def add_state(self, name, content, state=None, flush_current=False):
         """
         @param flush_current: Flush the current state and start a new one.
         """
@@ -415,20 +417,20 @@ class PTreeMappedOverrideBase(OverrideBase):
                                  context=self._context)
 
                 # Now see what members got resolved (if any)
-                for name in self.member_keys:
+                for mname in self.member_keys:
                     log.debug("checking for mapping '%s' member '%s'",
-                              self._override_name, name)
+                              self._override_name, mname)
                     try:
-                        obj = getattr(s, name)
+                        obj = getattr(s, mname)
                         if obj is not None:
                             log.debug("member '%s' found, adding to principle",
-                                      name)
+                                      mname)
                             state.add_obj(obj)
                         else:
-                            log.debug("member '%s' not found", name)
+                            log.debug("member '%s' not found", mname)
                     except AttributeError:
                         log.debug("member '%s' not found and raised "
-                                  "AttributeError which was unexpected", name)
+                                  "AttributeError which was unexpected", mname)
 
                 # Now see what mappings got resolved (if any)
                 for key in self._override_keys():
@@ -447,7 +449,7 @@ class PTreeMappedOverrideBase(OverrideBase):
                           self.valid_parse_content_types(),
                           PTreeOverrideRawType.__name__)
 
-                if type(content) != list:
+                if not isinstance(content, list):
                     content = [content]
 
                 for item in content:
@@ -687,7 +689,7 @@ class PTreeSection(object):
 
     @property
     def branch_sections(self):
-        return list(set([s.parent for s in self.leaf_sections]))
+        return list(set([s.parent for s in self.leaf_sections]))  # noqa, pylint: disable=R1718
 
     @property
     def leaf_sections(self):
@@ -709,7 +711,7 @@ class PTreeSection(object):
             log.debug("%s.run: running pre_hook", self.__class__.__name__)
             self.pre_hook()
 
-        if type(self.content) == list:
+        if isinstance(self.content, list):
             log.debug("content is list")
             self.manager.switch_to_stacked()
             for _ref, item in enumerate(self.content):
@@ -724,7 +726,7 @@ class PTreeSection(object):
                         flush_mapped = False
         else:
             self.manager.allow_stacking = False
-            if type(self.content) != dict:
+            if not isinstance(self.content, dict):
                 raise PTreeException("undefined override '{}'".
                                      format(self.name))
 

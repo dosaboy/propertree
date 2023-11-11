@@ -13,8 +13,6 @@
 # limitations under the License.
 import yaml
 
-from . import utils
-
 from propertree import (
     PTreeOverrideBase,
     PTreeMappedOverrideBase,
@@ -22,6 +20,7 @@ from propertree import (
     PTreeSection
 )
 from propertree.propertree import MappedOverrideState
+from . import utils
 
 
 class PTreeAssertionAttr(PTreeOverrideBase):

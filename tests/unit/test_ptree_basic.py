@@ -11,11 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import yaml
-
 from collections import UserString
 
-from . import utils
+import yaml
 
 from propertree import (
     PTreeOverrideBase,
@@ -24,6 +22,7 @@ from propertree import (
     PTreeSection,
 )
 from propertree.propertree import MappedOverrideState
+from . import utils
 
 
 class PTreeStrProp(PTreeOverrideBase, UserString):

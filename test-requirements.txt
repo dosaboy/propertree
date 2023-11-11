@@ -1,4 +1,5 @@
 flake8
+mypy
 stestr
 pylint==2.17.4
 testtools

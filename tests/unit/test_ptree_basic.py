@@ -11,25 +11,29 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from collections import UserString
-
 import yaml
 
-from propertree import (
+from propertree.propertree2 import (
     PTreeOverrideBase,
     PTreeMappedOverrideBase,
-    PTreeOverrideRawType,
     PTreeSection,
+    OverrideRegistry,
 )
-from propertree.propertree import MappedOverrideState
 from . import utils
 
 
-class PTreeStrProp(PTreeOverrideBase, UserString):
+class PTreeStrProp(PTreeOverrideBase):
+    _override_autoregister = False
 
     @classmethod
     def _override_keys(cls):
         return ['strprop']
+
+    def __str__(self):
+        return self.data
+
+    def __eq__(self, string):
+        return self.data == string
 
     @property
     def data(self):
@@ -37,6 +41,7 @@ class PTreeStrProp(PTreeOverrideBase, UserString):
 
 
 class PTreeDictProp(PTreeOverrideBase):
+    _override_autoregister = False
 
     @classmethod
     def _override_keys(cls):
@@ -44,6 +49,7 @@ class PTreeDictProp(PTreeOverrideBase):
 
 
 class PTreePropGroup(PTreeMappedOverrideBase):
+    _override_autoregister = False
 
     @classmethod
     def _override_keys(cls):
@@ -51,32 +57,37 @@ class PTreePropGroup(PTreeMappedOverrideBase):
 
     @classmethod
     def _override_mapped_member_types(cls):
-        return [PTreeStrProp, PTreeDictProp, PTreeOverrideRawType]
+        return [PTreeStrProp, PTreeDictProp]
 
 
 class TestPTreeSimpleProps(utils.BaseTestCase):
 
+    def setUp(self):
+        super().setUp()
+        self.requirements = [PTreeStrProp]
+        OverrideRegistry.register(self.requirements)
+
+    def tearDown(self):
+        OverrideRegistry.unregister(self.requirements)
+        super().tearDown()
+
     def test_struct_simple_prop_single(self):
-        overrides = [PTreeStrProp]
         _yaml = """
         strprop: myval
         """
-        root = PTreeSection('simpletest', yaml.safe_load(_yaml),
-                            override_handlers=overrides)
+        root = PTreeSection('simpletest', yaml.safe_load(_yaml))
         for leaf in root.leaf_sections:
             self.assertEqual(type(leaf.strprop), PTreeStrProp)
             self.assertEqual(leaf.strprop, "myval")
 
     def test_struct_simple_prop_multi(self):
-        overrides = [PTreeStrProp]
         _yaml = """
         s1:
           strprop: myval1
         s2:
           strprop: myval2
         """
-        root = PTreeSection('simpletest', yaml.safe_load(_yaml),
-                            override_handlers=overrides)
+        root = PTreeSection('simpletest', yaml.safe_load(_yaml))
         for leaf in root.leaf_sections:
             self.assertEqual(type(leaf.strprop), PTreeStrProp)
             if leaf.name == 's1':
@@ -85,13 +96,11 @@ class TestPTreeSimpleProps(utils.BaseTestCase):
                 self.assertEqual(leaf.strprop, "myval2")
 
     def test_struct_simple_prop_single_list(self):
-        overrides = [PTreeStrProp]
         _yaml = """
         - strprop: myval1
         - strprop: myval2
         """
-        root = PTreeSection('simpletest', yaml.safe_load(_yaml),
-                            override_handlers=overrides)
+        root = PTreeSection('simpletest', yaml.safe_load(_yaml))
         vals = []
         for leaf in root.leaf_sections:
             for prop in leaf.strprop:
@@ -103,50 +112,52 @@ class TestPTreeSimpleProps(utils.BaseTestCase):
 
 class TestPTreeMappedProps(utils.BaseTestCase):
 
+    def setUp(self):
+        super().setUp()
+        self.requirements = [PTreeStrProp, PTreeDictProp, PTreePropGroup]
+        OverrideRegistry.register(self.requirements)
+
+    def tearDown(self):
+        OverrideRegistry.unregister(self.requirements)
+        super().tearDown()
+
     def test_struct_mapped_prop_single(self):
-        overrides = [PTreePropGroup]
         _yaml = """
         pgroup:
           strprop: myval
         """
-        root = PTreeSection('simpletest', yaml.safe_load(_yaml),
-                            override_handlers=overrides)
+        root = PTreeSection('simpletest', yaml.safe_load(_yaml))
         for leaf in root.leaf_sections:
             self.assertEqual(type(leaf.pgroup), PTreePropGroup)
             self.assertEqual(len(leaf.pgroup), 1)
             for pgroup in leaf.pgroup:
                 self.assertEqual(len(pgroup), 1)
-                self.assertEqual(type(pgroup.strprop), str)
+                self.assertEqual(type(pgroup.strprop), PTreeStrProp)
                 self.assertEqual(pgroup.strprop, "myval")
 
     def test_struct_mapped_prop_single_list(self):
-        overrides = [PTreePropGroup]
         _yaml = """
         pgroup:
-          - '1'
-          - '2'
-          - '3'
+          - strprop: '1'
+          - strprop: '2'
+          - strprop: '3'
         """
-        root = PTreeSection('simpletest', yaml.safe_load(_yaml),
-                            override_handlers=overrides)
+        root = PTreeSection('simpletest', yaml.safe_load(_yaml))
         vals = []
         for leaf in root.leaf_sections:
             self.assertEqual(type(leaf.pgroup), PTreePropGroup)
             self.assertEqual(len(leaf.pgroup), 1)
             for pgroup in leaf.pgroup:
-                self.assertEqual(type(pgroup), MappedOverrideState)
                 members = 0
-                self.assertEqual(len(pgroup), 3)
-                for member in pgroup:
-                    self.assertEqual(type(member), PTreeOverrideRawType)
-                    members += 1
-                    vals.append(str(member))
+                for member in pgroup.members:
+                    for item in member:
+                        members += 1
+                        vals.append(str(item))
 
         self.assertEqual(members, 3)
         self.assertEqual(vals, ['1', '2', '3'])
 
     def test_struct_mapped_prop_multi_list(self):
-        overrides = [PTreePropGroup]
         _yaml = """
         - pgroup:
             - strprop: myval1.1
@@ -157,21 +168,21 @@ class TestPTreeMappedProps(utils.BaseTestCase):
             dictprop:
               p1: myval3
         """
-        root = PTreeSection('simpletest', yaml.safe_load(_yaml),
-                            override_handlers=overrides)
+        root = PTreeSection('simpletest', yaml.safe_load(_yaml))
         vals = []
         for leaf in root.leaf_sections:
             self.assertEqual(type(leaf.pgroup), PTreePropGroup)
             self.assertEqual(len(leaf.pgroup), 3)
             for pgroup in leaf.pgroup:
-                self.assertEqual(len(pgroup), 1)
-                for member in pgroup:
+                # Each item still reflects the size of the whole stack
+                self.assertEqual(len(pgroup), 3)
+                for member in pgroup.members:
                     self.assertTrue(type(member) in [PTreeStrProp,
                                                      PTreeDictProp])
                     for item in member:
                         if item._override_name == 'strprop':
                             self.assertEqual(type(item), PTreeStrProp)
-                            vals.append(item)
+                            vals.append(str(item))
                         else:
                             self.assertEqual(type(item), PTreeDictProp)
                             vals.append(item.p1)
@@ -179,36 +190,35 @@ class TestPTreeMappedProps(utils.BaseTestCase):
         self.assertEqual(vals, ["myval1.1", "myval1.2", "myval2", "myval3"])
 
         # The following demonstrates using a shortcut that always returns the
-        # last item added to the stack for any member. So basically is only
+        # first item added to the stack for any member. So basically is only
         # useful if there is only one item in any given member.
         vals = []
         for leaf in root.leaf_sections:
             for pgroup in leaf.pgroup:
                 if pgroup.strprop:
-                    self.assertEqual(type(pgroup.strprop), str)
-                    vals.append(pgroup.strprop)
+                    self.assertEqual(type(pgroup.strprop), PTreeStrProp)
+                    vals.append(str(pgroup.strprop))
                 else:
                     self.assertEqual(type(pgroup.dictprop), PTreeDictProp)
                     vals.append(pgroup.dictprop.p1)
 
-        self.assertEqual(vals, ["myval1.2", "myval2", "myval3"])
+        self.assertEqual(vals, ["myval1.1", "myval2", "myval3"])
 
     def test_struct_mapped_prop_single_member_list(self):
-        overrides = [PTreePropGroup]
         _yaml = """
         pgroup:
           - strprop: myval1
           - strprop: myval2
         """
-        root = PTreeSection('simpletest', yaml.safe_load(_yaml),
-                            override_handlers=overrides)
+        root = PTreeSection('simpletest', yaml.safe_load(_yaml))
         vals = []
         for leaf in root.leaf_sections:
             self.assertEqual(type(leaf.pgroup), PTreePropGroup)
             # one because it is stacked
             self.assertEqual(len(leaf.pgroup), 1)
-            for pgroup in leaf.pgroup:
-                for member in pgroup:
+            for pgroup in leaf:
+                self.assertEqual(type(pgroup), PTreePropGroup)
+                for member in pgroup.members:
                     self.assertEqual(type(member), PTreeStrProp)
                     for item in member:
                         vals.append(item)
@@ -216,15 +226,14 @@ class TestPTreeMappedProps(utils.BaseTestCase):
         self.assertEqual(vals, ["myval1", "myval2"])
 
     def test_struct_mapped_prop_single_member_list_nested(self):
-        overrides = [PTreePropGroup]
+        self.skipTest("this test does not represent a valid use case")
         _yaml = """
         pgroup:
           - strprop: myval1
           - pgroup:
               strprop: myval2
         """
-        root = PTreeSection('simpletest', yaml.safe_load(_yaml),
-                            override_handlers=overrides)
+        root = PTreeSection('simpletest', yaml.safe_load(_yaml))
         vals = []
         for leaf in root.leaf_sections:
             self.assertEqual(type(leaf.pgroup), PTreePropGroup)

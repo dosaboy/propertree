@@ -652,6 +652,9 @@ class PTreeSection(object):
     def __init__(self, name, content, parent=None, root=None,
                  override_handlers=None, override_manager=None,
                  run_hooks=False, resolve_path=None, context=None):
+        log.warning("DEPRECATED: this version of propertree is deprecated and "
+                    "will soon be removed. Please switch to the new "
+                    "implementation i.e. propertree2")
         self.run_hooks = run_hooks
         if root is None:
             self.root = self

@@ -11,10 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 import unittest
+
+from propertree.log import log, logging
 
 
 class BaseTestCase(unittest.TestCase):
 
     def setUp(self):
         self.maxDiff = None
+        loglevel = os.environ.get('PROPERTREE_LOG_LEVEL', 'DEBUG')
+        if os.environ.get('TESTS_LOG_LEVEL_DEBUG', 'no') == 'yes':
+            log.setLevel(getattr(logging, loglevel))
+        else:
+            log.setLevel(level=logging.WARNING)

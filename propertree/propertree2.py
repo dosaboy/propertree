@@ -1684,6 +1684,22 @@ class PTreeSection(object):
                  run_hooks: bool = False,
                  resolve_path: str | None = None,
                  context: dict | None = None):
+        """
+        Start a new branch section.
+
+        @param name: name of branch.
+        @param content: branch content i.e. properties, leaves and other
+                        branches.
+        @param parent: parent branch.
+        @param root: root branch.
+        @param override_handlers: registry of override handlers.
+        @param override_manager: override manager object.
+        @param run_hooks: Set to True to run pre/post hooks.
+        @param resolve_path: Resolve path to this branch. Will be None for the
+                             root.
+        @param context: an optional context object that is passed to all
+                        branches and properties.
+        """
         log.info("## new section %s: name=%s (resolve_path=%s, "
                  "override_manager=%s)",
                  id(self), name, resolve_path, override_manager is not None)

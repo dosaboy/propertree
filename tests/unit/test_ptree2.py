@@ -944,7 +944,7 @@ class TestMappedOverrides(TestPTree2Base):
         members = []
         results = []
         for member in mp.members:
-            if type(member) is PTreeLogicalGrouping:
+            if isinstance(member, PTreeLogicalGrouping):
                 self.check_len_and_type(member, 1, PTreeLogicalGrouping)
             else:
                 self.check_len_and_type(member, 1, properties.MapMember1)
@@ -984,7 +984,7 @@ class TestMappedOverrides(TestPTree2Base):
         members = []
         results = []
         for member in mp.members:
-            if type(member) is PTreeLogicalGrouping:
+            if isinstance(member, PTreeLogicalGrouping):
                 self.check_len_and_type(member, 1, PTreeLogicalGrouping)
             else:
                 self.check_len_and_type(member, 1, properties.MapMember1)
@@ -992,7 +992,7 @@ class TestMappedOverrides(TestPTree2Base):
             members.append(member.__class__.__name__)
             for item in member:
                 results.append(item.result)
-                if type(member) is PTreeLogicalGrouping:
+                if isinstance(member, PTreeLogicalGrouping):
                     num_items = item._override_group_stats['items_executed']
                     self.assertEqual(num_items, 2)
 
@@ -1126,7 +1126,7 @@ class TestMappedOverrides(TestPTree2Base):
                     for requires_item in requires:
                         members.append(type(requires))
                         for item in requires_item.members:
-                            if type(item) is properties.TypeCheck:
+                            if isinstance(item, properties.TypeCheck):
                                 # NOTE: length should be one because the other
                                 # two are within a group.
                                 self.check_len_and_type(item, 1,
@@ -1138,9 +1138,9 @@ class TestMappedOverrides(TestPTree2Base):
                                   properties.PTreeLogicalGroupingWithCheckRefs)
                                 self.assertTrue(item.result)
 
-                            if (type(item) is
+                            if (isinstance(item,
                                     properties.
-                                    PTreeLogicalGroupingWithCheckRefs):
+                                    PTreeLogicalGroupingWithCheckRefs)):
                                 loggroup_check[item.group_name] = \
                                     item._override_group_stats[
                                         'items_executed']

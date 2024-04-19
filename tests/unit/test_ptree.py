@@ -109,7 +109,7 @@ class PTreeLogicalGroupingWithStrRefs(PTreeLogicalGrouping):
     @property
     def result(self):
         items = []
-        if type(self.content) is list:
+        if isinstance(self.content, list):
             for item in self.content:
                 if isinstance(item, str):
                     items.append(item)

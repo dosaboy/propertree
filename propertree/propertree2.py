@@ -85,7 +85,7 @@ class OverrideRegistry(object):
 
         # backwards compatibility with old propertree override base. we
         # can deprecate and remove this eventually.
-        if keys is not None and type(keys) is not list:
+        if keys is not None and not isinstance(keys, list):
             keys = keys()
 
         if not keys:
@@ -138,7 +138,7 @@ class OverrideRegistry(object):
 
         # backwards compatibility with old propertree override base. we
         # can deprecate and remove this eventually.
-        if type(keys) is not list:
+        if not isinstance(keys, list):
             keys = keys()
 
         for key in keys:
@@ -420,7 +420,7 @@ class PTreeLogicalGrouping(PTreeOverrideBase):
 
     @classmethod
     def is_exit_condition_met(cls, group_name, result):
-        if type(result) is not bool:
+        if not isinstance(result, bool):
             raise TypeError("{} item has non-bool type '{}' - unable to "
                             "determine exit condition for logical op='{}'".
                             format(cls.__name__, type(result), group_name))
@@ -1233,9 +1233,9 @@ class PTreeOverrideManager(UserDict):
         Each new branch is marked as a leaf until it gets a branch of its own
         at which point it, and all of its ancestors marked as non-leaf.
         """
-        for k in self._branches:
-            if path.startswith(k):
-                self._branches[k]['is_leaf'] = False
+        for branch_path, info in self._branches.items():
+            if path.startswith(branch_path):
+                info['is_leaf'] = False
 
         self._branches[path] = {'is_leaf': True, 'parent': parent_branch}
 

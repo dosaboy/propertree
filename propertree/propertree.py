@@ -224,7 +224,7 @@ class MappedOverrideState(object):
     def content(self):
         # log.debug("%s.content", self._whoami)
         _content = {}
-        for stype in self._stacks:
+        for stype in self._stacks:  # pylint: disable=C0206
             for name, stack in self._stacks[stype].items():
                 _content.update({name: stack})
 
@@ -253,12 +253,12 @@ class MappedOverrideState(object):
         log.debug("%s %s stack: \n%s\n", self._whoami, stack_type, repr(self))
 
     def __len__(self):
-        return sum([len(self._stacks[stype]) for stype in self._stacks])  # noqa, pylint: disable=R1728
+        return sum([len(self._stacks[stype]) for stype in self._stacks])  # noqa, pylint: disable=R1728,C0206
 
     def __repr__(self):
         log.debug("%s.repr", self._whoami)
         r = []
-        for stype in self._stacks:
+        for stype in self._stacks:  # pylint: disable=C0206
             for name, stack in self._stacks[stype].items():
                 r.append("[{}] depth={} ".format(name, len(stack)))
 
@@ -266,7 +266,7 @@ class MappedOverrideState(object):
 
     def __iter__(self):
         log.debug("%s.__iter__", self._whoami)
-        for stype in self._stacks:
+        for stype in self._stacks:  # pylint: disable=C0206
             for obj in self._stacks[stype].values():
                 for item in obj:
                     yield item
@@ -274,7 +274,7 @@ class MappedOverrideState(object):
     def __getattr__(self, name):
         log.debug("%s.__getattr__: mapped state %s", self._whoami, name)
         _name = name.replace('_', '-')
-        for stype in self._stacks:
+        for stype in self._stacks:  # pylint: disable=C0206
             obj = self._stacks[stype].get(_name)
             if obj is not None:
                 break

@@ -16,7 +16,7 @@ import logging
 import os
 
 log = logging.getLogger('propertree')
-format = ("%(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [-] "  # noqa, pylint: disable=W0622
+format = ("%(asctime)s %(process)d %(levelname)s %(name)s [-] "  # noqa, pylint: disable=W0622
           "%(message)s")
 
 if not log.hasHandlers():

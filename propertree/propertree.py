@@ -80,7 +80,7 @@ class OverrideStack(object):
 
     def __iter__(self):
         log.debug("%s.__iter__ id=%s", self._whoami, id(self))
-        for item in self.items:
+        for item in self.items:  # pylint: disable=R1737
             yield item
 
 
@@ -268,7 +268,7 @@ class MappedOverrideState(object):
         log.debug("%s.__iter__", self._whoami)
         for stype in self._stacks:  # pylint: disable=C0206
             for obj in self._stacks[stype].values():
-                for item in obj:
+                for item in obj:  # pylint: disable=R1737
                     yield item
 
     def __getattr__(self, name):
@@ -374,7 +374,7 @@ class PTreeMappedOverrideBase(OverrideBase):
         for item in self._stack:
             log.debug("%s.__iter__ item=%s\n%s", self._whoami, item._whoami,
                       repr(item))
-            for _item in item:
+            for _item in item:  # pylint: disable=R1737
                 yield _item
 
     def __iter__(self):

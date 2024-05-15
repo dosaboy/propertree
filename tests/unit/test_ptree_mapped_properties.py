@@ -386,8 +386,9 @@ class TestPTreeMappedProperties(utils.BaseTestCase):
                 self.assertEqual(type(leaf.strgroups), PTreeStrGroups)
                 for strgroup in leaf.strgroups:
                     for member in strgroup.members:
-                        self.assertEqual(type(member),
-                                 properties.PTreeLogicalGroupingWithBoolValues)
+                        self.assertEqual(
+                            type(member),
+                            properties.PTreeLogicalGroupingWithBoolValues)
                         for item in member:
                             members.append(item.__class__)
                             self.assertTrue(item.result)

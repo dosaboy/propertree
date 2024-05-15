@@ -1018,8 +1018,9 @@ class TestMappedOverrides(TestPTree2Base):
         self.check_len_and_type(requires, 1, properties.Requires)
         members = []
         for member in requires.members:
-            self.check_len_and_type(member, 1,
-                                properties.PTreeLogicalGroupingWithCheckRefs)
+            self.check_len_and_type(
+                member, 1,
+                properties.PTreeLogicalGroupingWithCheckRefs)
             for item in member:
                 self.assertEqual(item._override_parent._override_path,
                                  'script.S1.requires')
@@ -1134,11 +1135,13 @@ class TestMappedOverrides(TestPTree2Base):
                                 for inst in item:
                                     submembers.append(type(inst))
                             else:
-                                self.check_len_and_type(item, 1,
+                                self.check_len_and_type(
+                                  item, 1,
                                   properties.PTreeLogicalGroupingWithCheckRefs)
                                 self.assertTrue(item.result)
 
-                            if (isinstance(item,
+                            if (isinstance(
+                                    item,
                                     properties.
                                     PTreeLogicalGroupingWithCheckRefs)):
                                 loggroup_check[item.group_name] = \

@@ -372,7 +372,7 @@ class PTreeOverrideLiteralType(PTreeOverrideBase):
 
     def __bool__(self):
         assert isinstance(self.content, bool), ("{} does not have type bool".
-                                             format(self.content))
+                                                format(self.content))
         return self.content
 
     def __str__(self):
@@ -1049,7 +1049,7 @@ class PropertyStateManager(UserList):
         return PropertyStateManager(self.property_cache, initial_state=copied)
 
     def __repr__(self):
-        info = "\n{}:".format(self[0]['cls'].__name__)
+        info = "\n{}:".format(self[0]['cls'].__name__)  # pylint: disable=E1101
         for item in self:
             info += ("\n[{}] path={}, is_implicit_primary={}, "
                      "has_implicit_primary={}, "

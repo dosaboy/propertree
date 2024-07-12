@@ -16,12 +16,12 @@ import logging
 import os
 
 log = logging.getLogger('propertree')
-format = ("%(asctime)s %(process)d %(levelname)s %(name)s [-] "  # noqa, pylint: disable=W0622
+FORMAT = ("%(asctime)s %(process)d %(levelname)s %(name)s [-] "  # noqa, pylint: disable=W0622
           "%(message)s")
 
 if not log.hasHandlers():
     handler = logging.StreamHandler()
-    handler.setFormatter(logging.Formatter(format))
+    handler.setFormatter(logging.Formatter(FORMAT))
     log.addHandler(handler)
 
 if os.environ.get('PROPERTREE_DEBUG', 'false').lower() == 'true':

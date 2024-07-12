@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Disable these globally since they don't apply here
+# pylint: disable=too-few-public-methods
+
 import operator
 
 from propertree.log import log
@@ -24,25 +27,30 @@ from propertree.propertree2 import (
 
 
 class TestPTreeOverrideBase(PTreeOverrideBase):
+    """ Base class for test override properties. """
     # Disable auto-registration to avoid conflicts across tests. All tests must
     # register the overrides they need.
     _override_autoregister = False
 
 
 class TestPTreeMappedOverrideBase(PTreeMappedOverrideBase):
+    """ Base class for test override mapping properties. """
     # Disable auto-registration to avoid conflicts across tests. All tests must
     # register the overrides they need.
     _override_autoregister = False
 
 
 class PTreeLogicalGroupingWithBoolValues(PTreeLogicalGrouping):
+    """ Test logical grouping with bool values. """
     _override_autoregister = False
 
-    def fetch_item_result(self, item):
+    @staticmethod
+    def fetch_item_result(item):
         return item.content
 
 
 class PTreeLogicalGroupingWithCheckRefs(PTreeLogicalGrouping):
+    """ Test logical grouping with string check refs. """
     _override_autoregister = False
 
     def get_check_item(self, name):
@@ -51,6 +59,8 @@ class PTreeLogicalGroupingWithCheckRefs(PTreeLogicalGrouping):
             return checks[name]
         except AttributeError:
             log.error("check '%s' not found in %s", name, checks)
+
+        return None
 
     def get_items(self):
         items = []
@@ -66,11 +76,13 @@ class PTreeLogicalGroupingWithCheckRefs(PTreeLogicalGrouping):
 
 
 class Vars(TestPTreeOverrideBase):
+    """ Test vars property. """
     _override_keys = []
     _allow_subtree = False
 
 
 class Input(TestPTreeOverrideBase):
+    """ Test input property. """
     _override_keys = []
 
     @property
@@ -79,6 +91,7 @@ class Input(TestPTreeOverrideBase):
 
 
 class VarOps(TestPTreeOverrideBase):
+    """ Test varops property. """
     _override_keys = []
 
     @property
@@ -104,6 +117,7 @@ class VarOps(TestPTreeOverrideBase):
 
 
 class Check(TestPTreeOverrideBase):
+    """ Test check property. """
     _override_keys = []
 
     @property
@@ -135,6 +149,7 @@ class Check(TestPTreeOverrideBase):
 
 
 class ValueCheck(TestPTreeOverrideBase):
+    """ Test varcheck property. """
     _override_keys = ['valuecheck']
 
     @property
@@ -154,6 +169,7 @@ class ValueCheck(TestPTreeOverrideBase):
 
 
 class Checks(TestPTreeOverrideBase):
+    """ Test checks property. """
     _override_keys = []
     _allow_subtree = False
 
@@ -180,6 +196,7 @@ class Checks(TestPTreeOverrideBase):
 
 
 class TypeCheck(TestPTreeOverrideBase):
+    """ Test check property. """
     _override_keys = []
 
     @property
@@ -197,6 +214,7 @@ class TypeCheck(TestPTreeOverrideBase):
 
 
 class Requires(TestPTreeMappedOverrideBase):
+    """ Test requires property. """
     _override_keys = []
     _override_members = [TypeCheck, VarOps]
     _override_logical_grouping_type = PTreeLogicalGroupingWithCheckRefs
@@ -210,13 +228,14 @@ class Requires(TestPTreeMappedOverrideBase):
                 results.append(item.result)
 
         if not results:
-            raise Exception("results list is empty")
+            raise Exception("results list is empty")  # noqa,pylint: disable=broad-exception-raised
 
         log.debug("%s: %s", self.__class__.__name__, results)
         return all(results)
 
 
 class Decision(TestPTreeMappedOverrideBase):
+    """ Test decision property. """
     _override_keys = []
     # NOTE: no members since we are using mapping to get the implicit
     #       PTreeLogicalGrouping.
@@ -232,6 +251,7 @@ class Decision(TestPTreeMappedOverrideBase):
 
 
 class Raises(TestPTreeOverrideBase):
+    """ Test raises property. """
     _override_keys = []
 
     @property
@@ -244,11 +264,13 @@ class Raises(TestPTreeOverrideBase):
 
 
 class Conclusion(TestPTreeMappedOverrideBase):
+    """ Test conclusion property. """
     _override_keys = []
     _override_members = [Decision, Raises]
 
 
 class Conclusions(TestPTreeOverrideBase):
+    """ Test conclusions property. """
     _override_keys = []
     _allow_subtree = False
 
@@ -263,19 +285,23 @@ class Conclusions(TestPTreeOverrideBase):
 
 
 class MapMember1(ValueCheck):
+    """ Test map member property. """
     _override_keys = []
 
 
 class MapMember2(ValueCheck):
+    """ Test map member property. """
     _override_keys = []
 
 
 class MapPrimary(TestPTreeMappedOverrideBase):
+    """ Test map primary property. """
     _override_keys = []
     _override_members = [MapMember1, MapMember2, Requires]
 
 
 class DeepMember2(ValueCheck):
+    """ Test map member property. """
     _override_keys = []
 
     @property
@@ -284,10 +310,12 @@ class DeepMember2(ValueCheck):
 
 
 class DeepMember1(TestPTreeMappedOverrideBase):
+    """ Test map member property. """
     _override_keys = []
     _override_members = [DeepMember2]
 
 
 class DeepMap(TestPTreeMappedOverrideBase):
+    """ Test map primary property. """
     _override_keys = []
     _override_members = [DeepMember1]

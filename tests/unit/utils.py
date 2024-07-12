@@ -18,9 +18,9 @@ from propertree.log import log, logging
 
 
 class BaseTestCase(unittest.TestCase):
-
+    """ base test class for all tests. """
     def setUp(self):
-        self.maxDiff = None
+        self.maxDiff = None  # pylint: disable=invalid-name
         loglevel = os.environ.get('PROPERTREE_LOG_LEVEL', 'DEBUG')
         if os.environ.get('TESTS_LOG_LEVEL_DEBUG', 'no') == 'yes':
             log.setLevel(getattr(logging, loglevel))

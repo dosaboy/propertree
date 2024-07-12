@@ -11,14 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import yaml
 
+# Disable these globally since they don't apply here
+# pylint: disable=missing-class-docstring,pointless-statement
+
+import yaml
 from propertree.propertree2 import (
     PTreeOverrideBase,
     PTreeMappedOverrideBase,
     PTreeSection,
     OverrideRegistry,
 )
+
 from . import utils
 
 
@@ -40,7 +44,7 @@ class PTreeStrProp(PTreeOverrideBase):
         return self.content
 
 
-class PTreeDictProp(PTreeOverrideBase):
+class PTreeDictProp(PTreeOverrideBase):  # noqa,pylint: disable=too-few-public-methods
     _override_autoregister = False
 
     @classmethod
@@ -48,7 +52,7 @@ class PTreeDictProp(PTreeOverrideBase):
         return ['dictprop']
 
 
-class PTreePropGroup(PTreeMappedOverrideBase):
+class PTreePropGroup(PTreeMappedOverrideBase):  # noqa,pylint: disable=too-few-public-methods
     _override_autoregister = False
 
     @classmethod
@@ -235,7 +239,7 @@ class TestPTreeMappedProps(utils.BaseTestCase):
         """
         root = PTreeSection('simpletest', yaml.safe_load(_yaml))
         vals = []
-        for leaf in root.leaf_sections:
+        for leaf in root.leaf_sections:   # noqa,pylint: disable=too-many-nested-blocks
             self.assertEqual(type(leaf.pgroup), PTreePropGroup)
             self.assertEqual(len(leaf.pgroup), 1)
             for pgroup in leaf.pgroup:

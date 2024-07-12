@@ -11,8 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import yaml
 
+# Disable these globally since they don't apply here
+# pylint: disable=missing-class-docstring,pointless-statement
+
+import yaml
 from propertree.propertree2 import (
     PTreeLogicalGrouping,
     PTreeOverrideBase,
@@ -21,6 +24,7 @@ from propertree.propertree2 import (
     PTreeSection,
     OverrideRegistry,
 )
+
 from . import properties, utils
 
 
@@ -58,7 +62,7 @@ class PTreeAssertion(PTreeMappedOverrideBase):
         return True
 
 
-class PTreeAssertions(PTreeMappedOverrideBase):
+class PTreeAssertions(PTreeMappedOverrideBase):  # noqa,pylint: disable=too-few-public-methods
     _override_autoregister = False
 
     @classmethod
@@ -70,11 +74,11 @@ class PTreeAssertions(PTreeMappedOverrideBase):
         return [PTreeAssertion]
 
 
-class GroupedLiteralType(PTreeOverrideLiteralType):
+class GroupedLiteralType(PTreeOverrideLiteralType):  # noqa,pylint: disable=too-few-public-methods
     _override_autoregister = False
 
 
-class PTreeStrGroups(PTreeMappedOverrideBase):
+class PTreeStrGroups(PTreeMappedOverrideBase):  # noqa,pylint: disable=too-few-public-methods
     _override_autoregister = False
 
     @classmethod

@@ -11,10 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+# Disable these globally since they don't apply here
+# pylint: disable=missing-class-docstring,pointless-statement
+
 from unittest import mock
 
 import yaml
-
 from propertree.propertree2 import (
     PTreeOverrideBase,
     PTreeLogicalGrouping,
@@ -22,10 +25,11 @@ from propertree.propertree2 import (
     PTreeSection,
     OverrideRegistry,
 )
+
 from . import utils
 
 
-class PTreeInput(PTreeOverrideBase):
+class PTreeInput(PTreeOverrideBase):  # noqa,pylint: disable=too-few-public-methods
     _override_autoregister = False
 
     @classmethod
@@ -33,7 +37,7 @@ class PTreeInput(PTreeOverrideBase):
         return ['input']
 
 
-class PTreeMessage(PTreeOverrideBase):
+class PTreeMessage(PTreeOverrideBase):  # noqa,pylint: disable=too-few-public-methods
     _override_autoregister = False
 
     @classmethod
@@ -44,7 +48,7 @@ class PTreeMessage(PTreeOverrideBase):
         return self.content
 
 
-class PTreeMeta(PTreeOverrideBase):
+class PTreeMeta(PTreeOverrideBase):  # noqa,pylint: disable=too-few-public-methods
     _override_autoregister = False
 
     @classmethod
@@ -52,7 +56,7 @@ class PTreeMeta(PTreeOverrideBase):
         return ['meta']
 
 
-class PTreeSettings(PTreeOverrideBase):
+class PTreeSettings(PTreeOverrideBase):  # noqa,pylint: disable=too-few-public-methods
     _override_autoregister = False
 
     @classmethod
@@ -64,7 +68,7 @@ class PTreeSettings(PTreeOverrideBase):
         return "i am a property"
 
 
-class PTreeAction(PTreeOverrideBase):
+class PTreeAction(PTreeOverrideBase):  # noqa,pylint: disable=too-few-public-methods
     _override_autoregister = False
 
     @classmethod
@@ -72,7 +76,7 @@ class PTreeAction(PTreeOverrideBase):
         return ['action', 'altaction']
 
 
-class PTreeLiterals(PTreeOverrideBase):
+class PTreeLiterals(PTreeOverrideBase):  # noqa,pylint: disable=too-few-public-methods
     _override_autoregister = False
 
     @classmethod
@@ -80,7 +84,7 @@ class PTreeLiterals(PTreeOverrideBase):
         return ['literals']
 
 
-class PTreeMappedGroup(PTreeMappedOverrideBase):
+class PTreeMappedGroup(PTreeMappedOverrideBase):  # noqa,pylint: disable=too-few-public-methods
     _override_autoregister = False
 
     @classmethod
@@ -119,7 +123,7 @@ class PTreeLogicalGroupingWithStrRefs(PTreeLogicalGrouping):
         return items
 
 
-class PTreeMappedRefs(PTreeMappedOverrideBase):
+class PTreeMappedRefs(PTreeMappedOverrideBase):  # noqa,pylint: disable=too-few-public-methods
     _override_autoregister = False
     _override_logical_grouping_type = PTreeLogicalGroupingWithStrRefs
 
@@ -143,7 +147,7 @@ class TestPTree(utils.BaseTestCase):
         super().tearDown()
 
     def test_struct(self):
-        with open('examples/checks.yaml') as fd:
+        with open('examples/checks.yaml', encoding='utf-8') as fd:
             root = PTreeSection('fruit tastiness', yaml.safe_load(fd.read()))
             for leaf in root.leaf_sections:
                 if leaf.name == 'meta':
@@ -191,7 +195,7 @@ class TestPTree(utils.BaseTestCase):
             self.assertEqual(leaf.input.type, 'dict')
 
     def test_struct_w_mapping(self):
-        with open('examples/checks2.yaml') as fd:
+        with open('examples/checks2.yaml', encoding='utf-8') as fd:
             root = PTreeSection('atest', yaml.safe_load(fd.read()))
             for leaf in root.leaf_sections:
                 self.assertTrue(leaf.name in ['item1', 'item2', 'item3',
@@ -415,7 +419,7 @@ class TestPTree(utils.BaseTestCase):
               brake: off
         """
 
-        class ContextHandler(object):
+        class ContextHandler():
             def __init__(self):
                 self.context = {}
 

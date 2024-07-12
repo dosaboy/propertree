@@ -12,8 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import yaml
+# Disable these globally since they don't apply here
+# pylint: disable=missing-class-docstring,pointless-statement
 
+
+import yaml
 from propertree.propertree2 import (
     PTreeOverrideManager,
     PTreeLogicalGrouping,
@@ -143,23 +146,23 @@ class TestSection(TestPTree2Base):
         super().tearDown()
 
     def test_section(self):
-        PROP_BASIC_FLAT = """
+        prop_basic_flat = """
         S1:
           valuecheck:
             key: cheese
             value: cheese
         """
-        root = PTreeSection('script', yaml.safe_load(PROP_BASIC_FLAT))
+        root = PTreeSection('script', yaml.safe_load(prop_basic_flat))
         self.assertEqual(len(root), 1)
 
     def test_layered_section(self):
-        PROP_BASIC_FLAT = """
+        prop_basic_flat = """
         S1:
           valuecheck:
             key: cheese
             value: cheese
         """
-        root = PTreeSection('script', yaml.safe_load(PROP_BASIC_FLAT))
+        root = PTreeSection('script', yaml.safe_load(prop_basic_flat))
         self.assertEqual(len(root), 1)
 
 
@@ -175,13 +178,13 @@ class TestBasicOverrides(TestPTree2Base):
         super().tearDown()
 
     def test_basic_property(self):
-        PROP_BASIC_FLAT = """
+        prop_basic_flat = """
         S1:
           valuecheck:
             key: cheese
             value: cheese
         """
-        root = PTreeSection('script', yaml.safe_load(PROP_BASIC_FLAT))
+        root = PTreeSection('script', yaml.safe_load(prop_basic_flat))
         self.assert_leaves(root, ['S1'])
         self.check_len_and_type(root.S1.valuecheck, 1, properties.ValueCheck)
         self.assertEqual(root.S1.valuecheck._override_parent, None)
@@ -198,8 +201,7 @@ class TestBasicOverrides(TestPTree2Base):
 
             @property
             def testattr2(self):
-                if self.nonexistantattr:
-                    return True
+                return bool(self.nonexistantattr)
 
             @property
             def testattr3(self):
@@ -209,7 +211,7 @@ class TestBasicOverrides(TestPTree2Base):
             def testattr4(self):
                 return self.testattr3
 
-        PROP_BASIC_FLAT = """
+        prop_basic_flat = """
         S1:
           valuecheckx:
             key: cheese
@@ -217,7 +219,7 @@ class TestBasicOverrides(TestPTree2Base):
         """
         OverrideRegistry.register([ValueCheckX])
         try:
-            root = PTreeSection('script', yaml.safe_load(PROP_BASIC_FLAT))
+            root = PTreeSection('script', yaml.safe_load(prop_basic_flat))
             with self.assertRaises(AttributeError) as exc:
                 root.S1.valuecheckx.notfound
 
@@ -263,7 +265,7 @@ class TestBasicOverrides(TestPTree2Base):
             OverrideRegistry.unregister([ValueCheckX])
 
     def test_basic_property_list(self):
-        PROP_BASIC_FLAT_LIST = """
+        prop_basic_flat_list = """
         S1:
           - valuecheck:
               key: cheese
@@ -272,14 +274,14 @@ class TestBasicOverrides(TestPTree2Base):
               key: cheese2
               value: cheese2
         """
-        root = PTreeSection('script', yaml.safe_load(PROP_BASIC_FLAT_LIST))
+        root = PTreeSection('script', yaml.safe_load(prop_basic_flat_list))
         self.assert_leaves(root, ['S1'])
         self.check_len_and_type(root.S1.valuecheck, 2, properties.ValueCheck)
         for item in root.S1.valuecheck:
             self.assertEqual(item.result, True)
 
     def test_basic_property_layered_section(self):
-        PROP_BASIC_LAYERED = """
+        prop_basic_layered = """
         S1:
           S2:
             valuecheck:
@@ -290,7 +292,7 @@ class TestBasicOverrides(TestPTree2Base):
               key: cheese
               value: runny
         """
-        root = PTreeSection('script', yaml.safe_load(PROP_BASIC_LAYERED))
+        root = PTreeSection('script', yaml.safe_load(prop_basic_layered))
         self.assert_leaves(root, ['S2', 'S3'])
         self.assertEqual(len(root.S1.S2.valuecheck), 1)
         self.assertEqual(len(root.S1.S3.valuecheck), 1)
@@ -317,7 +319,7 @@ class TestOverridesScope(TestPTree2Base):
         super().tearDown()
 
     def test_property_reference_global(self):
-        PROP_REF_GLOBAL = """
+        prop_ref_global = """
         vars:
           cheese: smelly
         S1:
@@ -325,26 +327,26 @@ class TestOverridesScope(TestPTree2Base):
             key: cheese
             value: smelly
         """
-        root = PTreeSection('script', yaml.safe_load(PROP_REF_GLOBAL))
+        root = PTreeSection('script', yaml.safe_load(prop_ref_global))
         self.assert_leaves(root, ['S1'])
         self.assertEqual(root.vars.cheese, 'smelly')
         self.assertEqual(root.S1.vars.cheese, 'smelly')
         self.assertEqual(root.S1.valuecheck.result, True)
 
     def test_property_reference_global_not_found(self):
-        PROP_REF_GLOBAL = """
+        prop_ref_global = """
         S1:
           valuecheck:
             key: cheese
             value: smelly
         """
-        root = PTreeSection('script', yaml.safe_load(PROP_REF_GLOBAL))
+        root = PTreeSection('script', yaml.safe_load(prop_ref_global))
         self.assert_leaves(root, ['S1'])
         self.assertEqual(root.vars, None)
         self.assertEqual(root.S1.valuecheck.result, False)
 
     def test_property_reference_context(self):
-        PROP_REF_CONTEXT = """
+        prop_ref_context = """
         vars:
           1k: 1000
         S1:
@@ -352,13 +354,13 @@ class TestOverridesScope(TestPTree2Base):
             check1:
               varops: [[$1k], [eq, 1000]]
         """
-        root = PTreeSection('script', yaml.safe_load(PROP_REF_CONTEXT))
+        root = PTreeSection('script', yaml.safe_load(prop_ref_context))
         self.assert_leaves(root, ['S1'])
         for check in root.S1.checks:
             self.assertEqual(check.result, True)
 
     def test_inheritance(self):
-        INHERITANCE = """
+        inheritance = """
         S1:
           input:
             path: moo
@@ -375,7 +377,7 @@ class TestOverridesScope(TestPTree2Base):
               check:
                 value: foo
         """
-        root = PTreeSection('script', yaml.safe_load(INHERITANCE))
+        root = PTreeSection('script', yaml.safe_load(inheritance))
         self.assert_leaves(root, ['S2', 'S4', 'S5'])
         self.assertEqual(root.S1.input.path, 'moo')
         self.assertEqual(root.S1.S2.input.path, 'baa')
@@ -408,7 +410,7 @@ class TestOverridesScope(TestPTree2Base):
                 # inheritance
                 self.assertEqual(types, set([properties.Check]))
             else:
-                raise Exception("unexpected item name={}".format(item.name))
+                raise Exception(f"unexpected item name={item.name}")  # noqa,pylint: disable=broad-exception-raised
 
         self.assertEqual(checked, 3)
 
@@ -427,7 +429,7 @@ class TestOverrideLogicalGrouping(TestPTree2Base):
         super().tearDown()
 
     def test_simple_property_grouping(self):
-        SIMPLE_PROPERTY_GROUPING = """
+        simple_property_grouping = """
         vars:
           1k: 1000
           2k: 2000
@@ -441,7 +443,7 @@ class TestOverrideLogicalGrouping(TestPTree2Base):
           -
             varops: [[$1k], [eq, 1000]]
         """
-        root = PTreeSection('script', yaml.safe_load(SIMPLE_PROPERTY_GROUPING))
+        root = PTreeSection('script', yaml.safe_load(simple_property_grouping))
         self.assert_leaves(root, ['S1'])
         checked = []
         for item in root.S1:
@@ -453,7 +455,7 @@ class TestOverrideLogicalGrouping(TestPTree2Base):
         self.assertEqual(sorted(checked), [False, True, True])
 
     def test_simple_mapping_grouping(self):
-        SIMPLE_MAPPING_GROUPING = """
+        simple_mapping_grouping = """
         vars:
           1k: 1000
           2k: 2000
@@ -466,7 +468,7 @@ class TestOverrideLogicalGrouping(TestPTree2Base):
         OverrideRegistry.register([properties.Requires])
         try:
             root = PTreeSection('script',
-                                yaml.safe_load(SIMPLE_MAPPING_GROUPING))
+                                yaml.safe_load(simple_mapping_grouping))
             self.assert_leaves(root, ['S1'])
             checked = []
             for item in root.S1:
@@ -480,7 +482,7 @@ class TestOverrideLogicalGrouping(TestPTree2Base):
             OverrideRegistry.unregister([properties.Requires])
 
     def test_nested_property_grouping1(self):
-        NESTED_PROPERTY_GROUPING1 = """
+        nested_property_grouping1 = """
         vars:
           1k: 1000
           2k: 2000
@@ -493,7 +495,7 @@ class TestOverrideLogicalGrouping(TestPTree2Base):
                     varops: [[$2k], [lt, 1000]]
         """
         root = PTreeSection('script',
-                            yaml.safe_load(NESTED_PROPERTY_GROUPING1))
+                            yaml.safe_load(nested_property_grouping1))
         self.assert_leaves(root, ['S1_True'])
         checked = []
         for item in root.S1_True:
@@ -502,7 +504,7 @@ class TestOverrideLogicalGrouping(TestPTree2Base):
         self.assertEqual(checked, [True])
 
     def test_nested_property_grouping2(self):
-        NESTED_PROPERTY_GROUPING2 = """
+        nested_property_grouping2 = """
         vars:
           1k: 1000
           2k: 2000
@@ -520,7 +522,7 @@ class TestOverrideLogicalGrouping(TestPTree2Base):
                 varops: [[$1k], [eq, 1000]]
         """
         root = PTreeSection('script',
-                            yaml.safe_load(NESTED_PROPERTY_GROUPING2))
+                            yaml.safe_load(nested_property_grouping2))
         self.assert_leaves(root, ['S1_True', 'S1_False'])
         checked = []
         for item in root.S1_True:
@@ -532,7 +534,7 @@ class TestOverrideLogicalGrouping(TestPTree2Base):
         self.assertEqual(checked, [True, False])
 
     def test_check_group_default(self):
-        CHECK_GROUP_DEFAULT = """
+        check_group_default = """
         vars:
           1k: 1000
           2k: 2000
@@ -545,7 +547,7 @@ class TestOverrideLogicalGrouping(TestPTree2Base):
               - varops: [[$1k], [eq, 1000]]
               - varops: [[$2k], [lt, 1000]]
         """
-        root = PTreeSection('script', yaml.safe_load(CHECK_GROUP_DEFAULT))
+        root = PTreeSection('script', yaml.safe_load(check_group_default))
         self.assert_leaves(root, ['S1'])
         checked = []
         for check in root.S1.checks:
@@ -560,7 +562,7 @@ class TestOverrideLogicalGrouping(TestPTree2Base):
         self.assertEqual(sorted(checked), ['check_false', 'check_true'])
 
     def test_check_group_and(self):
-        CHECK_GROUP_AND = """
+        check_group_and = """
         vars:
           1k: 1000
           2k: 2000
@@ -575,7 +577,7 @@ class TestOverrideLogicalGrouping(TestPTree2Base):
                 - varops: [[$1k], [eq, 1000]]
                 - varops: [[$2k], [eq, 1000]]
         """
-        root = PTreeSection('script', yaml.safe_load(CHECK_GROUP_AND))
+        root = PTreeSection('script', yaml.safe_load(check_group_and))
         self.assert_leaves(root, ['S1'])
         checked = []
         for check in root.S1.checks:
@@ -590,7 +592,7 @@ class TestOverrideLogicalGrouping(TestPTree2Base):
         self.assertEqual(sorted(checked), ['check_false', 'check_true'])
 
     def test_check_group_or(self):
-        CHECK_GROUP_OR = """
+        check_group_or = """
         vars:
           1k: 1000
           2k: 2000
@@ -611,7 +613,7 @@ class TestOverrideLogicalGrouping(TestPTree2Base):
                 - varops: [[$1k], [gt, 1000]]
                 - varops: [[$2k], [eq, 1000]]
         """
-        root = PTreeSection('script', yaml.safe_load(CHECK_GROUP_OR))
+        root = PTreeSection('script', yaml.safe_load(check_group_or))
         self.assert_leaves(root, ['S1'])
         checked = []
         for check in root.S1.checks:
@@ -626,7 +628,7 @@ class TestOverrideLogicalGrouping(TestPTree2Base):
         self.assertEqual(sorted(checked), ['check_false', 'check_true'])
 
     def test_check_group_and_exit_early(self):
-        CHECK_GROUP_OR = """
+        check_group_or = """
         vars:
           1k: 1000
           2k: 2000
@@ -637,7 +639,7 @@ class TestOverrideLogicalGrouping(TestPTree2Base):
             - varops: [[$1k], [eq, 1000]]
             - varops: [[$1k], [eq, 1000]]
         """
-        root = PTreeSection('script', yaml.safe_load(CHECK_GROUP_OR))
+        root = PTreeSection('script', yaml.safe_load(check_group_or))
         result = None
         for op in root.S1:
             result = op.result
@@ -646,7 +648,7 @@ class TestOverrideLogicalGrouping(TestPTree2Base):
         self.assertEqual(result, False)
 
     def test_check_group_nand_exit_early(self):
-        CHECK_GROUP_OR = """
+        check_group_or = """
         vars:
           1k: 1000
           2k: 2000
@@ -655,7 +657,7 @@ class TestOverrideLogicalGrouping(TestPTree2Base):
             - varops: [[$1k], [eq, 1000]]
             - varops: [[$2k], [eq, 1000]]
         """
-        root = PTreeSection('script', yaml.safe_load(CHECK_GROUP_OR))
+        root = PTreeSection('script', yaml.safe_load(check_group_or))
         result = None
         for op in root.S1:
             result = op.result
@@ -664,7 +666,7 @@ class TestOverrideLogicalGrouping(TestPTree2Base):
         self.assertEqual(result, True)
 
     def test_check_group_not_exit_early(self):
-        CHECK_GROUP_OR = """
+        check_group_or = """
         vars:
           1k: 1000
           2k: 2000
@@ -673,7 +675,7 @@ class TestOverrideLogicalGrouping(TestPTree2Base):
             - varops: [[$1k], [eq, 1000]]
             - varops: [[$2k], [eq, 1000]]
         """
-        root = PTreeSection('script', yaml.safe_load(CHECK_GROUP_OR))
+        root = PTreeSection('script', yaml.safe_load(check_group_or))
         result = None
         for op in root.S1:
             result = op.result
@@ -698,7 +700,7 @@ class TestMappedOverrides(TestPTree2Base):
         super().tearDown()
 
     def test_mapped_property_attr_access(self):
-        MAPPED_PROPERTY_BASIC_MEMBERS = """
+        mapped_property_basic_members = """
         S1:
           deepmap:
             deepmember1:
@@ -711,7 +713,7 @@ class TestMappedOverrides(TestPTree2Base):
         OverrideRegistry.unregister([properties.MapPrimary])
         try:
             root = PTreeSection('script',
-                                yaml.safe_load(MAPPED_PROPERTY_BASIC_MEMBERS))
+                                yaml.safe_load(mapped_property_basic_members))
             for primary in root.S1:
                 self.assertEqual(primary.deepmember1._override_name,
                                  'deepmember1')
@@ -735,7 +737,7 @@ class TestMappedOverrides(TestPTree2Base):
                                          properties.DeepMember2])
 
     def test_mapped_property_basic(self):
-        MAPPED_PROPERTY_BASIC_MEMBERS = """
+        mapped_property_basic_members = """
         S1:
           mapprimary:
             mapmember1:
@@ -755,7 +757,7 @@ class TestMappedOverrides(TestPTree2Base):
             value: wensleydale
         """
         root = PTreeSection('script',
-                            yaml.safe_load(MAPPED_PROPERTY_BASIC_MEMBERS))
+                            yaml.safe_load(mapped_property_basic_members))
         self.assert_leaves(root, ['S1', 'S2'])
 
         self.assertEqual(len(root.S1), 1)
@@ -822,8 +824,7 @@ class TestMappedOverrides(TestPTree2Base):
 
             @property
             def testattr2(self):
-                if self.nonexistantattr:
-                    return True
+                return bool(self.nonexistantattr)
 
             @property
             def testattr3(self):
@@ -833,7 +834,7 @@ class TestMappedOverrides(TestPTree2Base):
             def testattr4(self):
                 return self.testattr3
 
-        PROP_BASIC_FLAT = """
+        prop_basic_flat = """
         S1:
           mapprimaryx:
             mapmember1:
@@ -843,7 +844,7 @@ class TestMappedOverrides(TestPTree2Base):
         OverrideRegistry.unregister([properties.MapPrimary])
         OverrideRegistry.register([MapPrimaryX])
         try:
-            root = PTreeSection('script', yaml.safe_load(PROP_BASIC_FLAT))
+            root = PTreeSection('script', yaml.safe_load(prop_basic_flat))
             with self.assertRaises(AttributeError) as exc:
                 root.S1.mapprimaryx.notfound
 
@@ -890,7 +891,7 @@ class TestMappedOverrides(TestPTree2Base):
             OverrideRegistry.unregister([MapPrimaryX])
 
     def test_mapped_property_list(self):
-        MAPPED_PROPERTY_LIST_MEMBERS = """
+        mapped_property_list_members = """
         S1:
           mapprimary:
             - mapmember1:
@@ -901,7 +902,7 @@ class TestMappedOverrides(TestPTree2Base):
                 value: brie
         """
         root = PTreeSection('script',
-                            yaml.safe_load(MAPPED_PROPERTY_LIST_MEMBERS))
+                            yaml.safe_load(mapped_property_list_members))
         cheese_types = []
         self.assert_leaves(root, ['S1'])
         mp = root.S1.mapprimary
@@ -920,7 +921,7 @@ class TestMappedOverrides(TestPTree2Base):
         self.assertEqual(cheese_types, ['cheddar', 'brie'])
 
     def test_mapped_property_grouped_member_first(self):
-        MAPPED_PROPERTY_GROUPED_MEMBERS = """
+        mapped_property_grouped_members = """
         vars:
           cheese: cheddar
         S1:
@@ -937,7 +938,7 @@ class TestMappedOverrides(TestPTree2Base):
                   value: brie
         """
         root = PTreeSection('script',
-                            yaml.safe_load(MAPPED_PROPERTY_GROUPED_MEMBERS))
+                            yaml.safe_load(mapped_property_grouped_members))
         self.assert_leaves(root, ['S1'])
         mp = root.S1.mapprimary
         self.check_len_and_type(mp, 1, properties.MapPrimary)
@@ -957,7 +958,7 @@ class TestMappedOverrides(TestPTree2Base):
         self.assertEqual(members, ['MapMember1', 'PTreeLogicalGrouping'])
 
     def test_mapped_property_grouped_member_last(self):
-        MAPPED_PROPERTY_GROUPED_MEMBERS = """
+        mapped_property_grouped_members = """
         vars:
           cheese: cheddar
         S1:
@@ -977,7 +978,7 @@ class TestMappedOverrides(TestPTree2Base):
               value: wenselydale
         """
         root = PTreeSection('script',
-                            yaml.safe_load(MAPPED_PROPERTY_GROUPED_MEMBERS))
+                            yaml.safe_load(mapped_property_grouped_members))
         self.assert_leaves(root, ['S1'])
         mp = root.S1.mapprimary
         self.check_len_and_type(mp, 1, properties.MapPrimary)
@@ -1000,7 +1001,7 @@ class TestMappedOverrides(TestPTree2Base):
         self.assertEqual(members, ['MapMember1', 'PTreeLogicalGrouping'])
 
     def test_mapped_property_member_group(self):
-        SCRIPT = """
+        script = """
         vars:
           foo: bar
         S1:
@@ -1012,7 +1013,7 @@ class TestMappedOverrides(TestPTree2Base):
               varops: [[$foo], [eq, bar]]
         """
         OverrideRegistry.unregister([properties.MapPrimary])
-        root = PTreeSection('script', yaml.safe_load(SCRIPT))
+        root = PTreeSection('script', yaml.safe_load(script))
         self.assert_leaves(root, ['S1'])
         requires = root.S1.requires
         self.check_len_and_type(requires, 1, properties.Requires)
@@ -1033,7 +1034,7 @@ class TestMappedOverrides(TestPTree2Base):
         self.assertEqual(members, ['PTreeLogicalGroupingWithCheckRefs'])
 
     def test_grouped_implicit_mapped_property(self):
-        SCRIPT = """
+        script = """
         vars:
           foo: bar
         S1:
@@ -1044,7 +1045,7 @@ class TestMappedOverrides(TestPTree2Base):
             varops: [[$foo], [eq, bar]]
         """
         OverrideRegistry.unregister([properties.MapPrimary])
-        root = PTreeSection('script', yaml.safe_load(SCRIPT))
+        root = PTreeSection('script', yaml.safe_load(script))
         self.assert_leaves(root, ['S1'])
         num_items = []
         for item in root.S1:
@@ -1056,7 +1057,7 @@ class TestMappedOverrides(TestPTree2Base):
         self.assertEqual(num_items, [2])
 
     def test_nested_mapping_explicit(self):
-        NESTED_MAPPED_PROPERTY = """
+        nested_mapped_property = """
         mapprimary:
           requires:
             - typecheck:
@@ -1067,12 +1068,12 @@ class TestMappedOverrides(TestPTree2Base):
                 type: str
         """
         root = PTreeSection('script',
-                            yaml.safe_load(NESTED_MAPPED_PROPERTY))
+                            yaml.safe_load(nested_mapped_property))
         self.assertEqual(type(root.mapprimary), properties.MapPrimary)
         primaries = []
         members = []
         submembers = []
-        for leaf in root.leaf_sections:
+        for leaf in root.leaf_sections:  # noqa,pylint: disable=too-many-nested-blocks
             for primary in leaf.mapprimary:
                 primaries.append(type(primary))
                 self.assertEqual(type(primary), properties.MapPrimary)
@@ -1097,7 +1098,7 @@ class TestMappedOverrides(TestPTree2Base):
                                       properties.TypeCheck])
 
     def test_nested_mapping_explicit_w_member_group(self):
-        NESTED_MAPPED_PROPERTY = """
+        nested_mapped_property = """
         mapprimary:
           requires:
             - typecheck:
@@ -1112,13 +1113,13 @@ class TestMappedOverrides(TestPTree2Base):
                     type: str
         """
         root = PTreeSection('script',
-                            yaml.safe_load(NESTED_MAPPED_PROPERTY))
+                            yaml.safe_load(nested_mapped_property))
         self.assertEqual(type(root.mapprimary), properties.MapPrimary)
         primaries = []
         members = []
         submembers = []
         loggroup_check = {}
-        for leaf in root.leaf_sections:
+        for leaf in root.leaf_sections:  # noqa,pylint: disable=too-many-nested-blocks
             for primary in leaf:
                 primaries.append(type(primary))
                 self.assertEqual(type(primary), properties.MapPrimary)
@@ -1160,7 +1161,7 @@ class TestMappedOverrides(TestPTree2Base):
         explicit mappings where the explicit mapping contains a member
         group.
         """
-        NESTED_MAPPED_PROPERTY = """
+        nested_mapped_property = """
         mapprimary:
           and:  # this should be a PTreeLogicalGrouping
             - typecheck:
@@ -1178,7 +1179,7 @@ class TestMappedOverrides(TestPTree2Base):
                       type: str
         """
         root = PTreeSection('script',
-                            yaml.safe_load(NESTED_MAPPED_PROPERTY))
+                            yaml.safe_load(nested_mapped_property))
         self.assertEqual(type(root.mapprimary), properties.MapPrimary)
         primaries = []
         members = []
@@ -1205,19 +1206,19 @@ class TestMappedOverrides(TestPTree2Base):
         Note the difference here is that with a list of implicit mappings, each
         item becomes its own mapping.
         """
-        NESTED_MAPPED_PROPERTY = """
+        nested_mapped_property = """
         mapprimary:
           typecheck:
             value: astring
             type: str
         """
         root = PTreeSection('script',
-                            yaml.safe_load(NESTED_MAPPED_PROPERTY))
+                            yaml.safe_load(nested_mapped_property))
         self.assertEqual(type(root.mapprimary), properties.MapPrimary)
         primaries = []
         members = []
         submembers = []
-        for leaf in root.leaf_sections:
+        for leaf in root.leaf_sections:  # noqa,pylint: disable=too-many-nested-blocks
             for primary in leaf.mapprimary:
                 primaries.append(type(primary))
                 self.assertEqual(type(primary), properties.MapPrimary)
@@ -1240,7 +1241,7 @@ class TestMappedOverrides(TestPTree2Base):
         Note the difference here is that with a list of implicit mappings, each
         item becomes its own mapping.
         """
-        NESTED_MAPPED_PROPERTY = """
+        nested_mapped_property = """
         mapprimary:
           - typecheck:
               value: astring
@@ -1250,12 +1251,12 @@ class TestMappedOverrides(TestPTree2Base):
               type: str
         """
         root = PTreeSection('script',
-                            yaml.safe_load(NESTED_MAPPED_PROPERTY))
+                            yaml.safe_load(nested_mapped_property))
         self.assertEqual(type(root.mapprimary), properties.MapPrimary)
         primaries = []
         members = []
         submembers = []
-        for leaf in root.leaf_sections:
+        for leaf in root.leaf_sections:  # noqa,pylint: disable=too-many-nested-blocks
             for primary in leaf.mapprimary:
                 primaries.append(type(primary))
                 self.assertEqual(type(primary), properties.MapPrimary)
@@ -1274,7 +1275,7 @@ class TestMappedOverrides(TestPTree2Base):
                                       properties.TypeCheck])
 
     def test_mapping_mixed_logic(self):
-        MAPPED = """
+        mapped = """
         S1:
           S2:
             vars:
@@ -1288,7 +1289,7 @@ class TestMappedOverrides(TestPTree2Base):
                   - varops: [[$foo], [eq, bar]]
                   - varops: [[$foo], [ne, bar]]
         """
-        root = PTreeSection('script', yaml.safe_load(MAPPED))
+        root = PTreeSection('script', yaml.safe_load(mapped))
         self.assertEqual([e.name for e in root.leaf_sections], ['S2'])
         self.assertEqual(type(root.S1.S2.checks), properties.Checks)
         for check in root.S1.S2.checks:
@@ -1296,7 +1297,7 @@ class TestMappedOverrides(TestPTree2Base):
             self.assertEqual(check.result, False)
 
     def test_mapping_stacked_logic(self):
-        MAPPED = """
+        mapped = """
         requires:
           - not:
               typecheck:
@@ -1307,7 +1308,7 @@ class TestMappedOverrides(TestPTree2Base):
                 value: iamastr
                 type: str
         """
-        root = PTreeSection('script', yaml.safe_load(MAPPED))
+        root = PTreeSection('script', yaml.safe_load(mapped))
         self.assertEqual(type(root.requires), properties.Requires)
         items = []
         for member in root.requires.members:
@@ -1322,11 +1323,11 @@ class TestMappedOverrides(TestPTree2Base):
                                  properties.PTreeLogicalGroupingWithCheckRefs])
 
     def test_mapping_literal_items(self):
-        MAPPED = """
+        mapped = """
         S1:
           decision: ["foo", "bar"]
         """
-        root = PTreeSection('script', yaml.safe_load(MAPPED))
+        root = PTreeSection('script', yaml.safe_load(mapped))
         self.assertEqual([e.name for e in root.leaf_sections], ['S1'])
         self.assertEqual(type(root.S1.decision), properties.Decision)
         members = []
@@ -1353,7 +1354,7 @@ class TestLiteralOverrides(TestPTree2Base):
         OverrideRegistry.register([PTreeLogicalGrouping])
 
     def test_simple_grouped_literal(self):
-        SIMPLE_LITERAL = """
+        simple_literal = """
         S1_True:
           and:
             - True
@@ -1364,7 +1365,7 @@ class TestLiteralOverrides(TestPTree2Base):
           not:
             - True
         """
-        root = PTreeSection('script', yaml.safe_load(SIMPLE_LITERAL))
+        root = PTreeSection('script', yaml.safe_load(simple_literal))
         self.assert_leaves(root, ['S1_True'])
         checked = []
         for group in root:
@@ -1401,7 +1402,7 @@ class TestLargeScript(TestPTree2Base):
         super().tearDown()
 
     def test_large_script(self):
-        YAML_SCRIPT1 = """
+        yaml_script1 = """
         S1:
           input:
             path: F1
@@ -1430,7 +1431,7 @@ class TestLargeScript(TestPTree2Base):
             path: F2
         """
         context = {}
-        root = PTreeSection('script', yaml.safe_load(YAML_SCRIPT1),
+        root = PTreeSection('script', yaml.safe_load(yaml_script1),
                             context=context)
         context['checks'] = {c.name: c for c in root.S1.checks}
         self.assertEqual(root.S1.input.path, "F1")
@@ -1448,7 +1449,7 @@ class TestLargeScript(TestPTree2Base):
             elif check._override_name == 'mycheck3':
                 self.assertEqual(len(check), 1)
             else:
-                raise Exception("unknown name")
+                raise Exception("unknown name")  # noqa,pylint: disable=broad-exception-raised
 
             labels.append(check._override_name)
             self.assertEqual(check.result, True)

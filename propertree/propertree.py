@@ -16,20 +16,20 @@ import abc
 from propertree.log import log
 
 
-class PTreeException(Exception):
+class PTreeException(Exception):  # pylint: disable=missing-class-docstring
     pass
 
 
-class OverrideState(object):
+class OverrideState():  # pylint: disable=missing-class-docstring
     def __init__(self, owner, content):
-        self._whoami = "{}.{}".format(owner.__class__.__name__,
+        self._whoami = "{}.{}".format(owner.__class__.__name__,  # noqa, pylint: disable=consider-using-f-string
                                       self.__class__.__name__)
         log.debug("%s.__init__: id=%s content=%s", self._whoami, id(self),
                   content)
         self._content = content
 
     @property
-    def content(self):
+    def content(self):  # pylint: disable=missing-function-docstring
         # log.debug("%s.content", self._whoami))
         return self._content
 
@@ -37,21 +37,21 @@ class OverrideState(object):
         # log.debug("%s.__getattr__: %s", self._whoami, name))
         _name = name.replace('_', '-')
         if not isinstance(self.content, dict) or _name not in self.content:
-            raise AttributeError("'{}' object has no attribute '{}'".
+            raise AttributeError("'{}' object has no attribute '{}'". # noqa, pylint: disable=consider-using-f-string
                                  format(self._whoami, name))
 
         return self.content[_name]
 
 
-class OverrideStack(object):
+class OverrideStack():  # pylint: disable=missing-class-docstring
     def __init__(self, owner):
-        self._whoami = "{}.{}".format(owner.__class__.__name__,
+        self._whoami = "{}.{}".format(owner.__class__.__name__,   # noqa, pylint: disable=consider-using-f-string
                                       self.__class__.__name__)
         self.items = []
         log.debug("%s.__init__ id=%s (owner=%s)", self._whoami, id(self),
                   id(owner))
 
-    def push(self, item):
+    def push(self, item):  # pylint: disable=missing-function-docstring
         self.items.append(item)
         log.debug("%s: push (stack_id=%s) \n%s\n", self._whoami, id(self),
                   repr(self))
@@ -63,10 +63,10 @@ class OverrideStack(object):
         r = []
         for item in self.items:
             if isinstance(item, OverrideState):
-                r.append("[{}] type={} content={}".
+                r.append("[{}] type={} content={}".  # noqa, pylint: disable=consider-using-f-string
                          format(id(item), item._whoami, item.content))
             else:
-                r.append("[{}] {} depth={}".format(id(item), item._whoami,
+                r.append("[{}] {} depth={}".format(id(item), item._whoami,   # noqa, pylint: disable=consider-using-f-string
                                                    len(item)))
 
         return '\n'.join(r)
@@ -78,15 +78,17 @@ class OverrideStack(object):
             log.debug("%s: using current", self._whoami)
             return self.items[-1]
 
+        return None
+
     def __iter__(self):
         log.debug("%s.__iter__ id=%s", self._whoami, id(self))
         for item in self.items:  # pylint: disable=R1737
             yield item
 
 
-class OverrideBase(abc.ABC):
+class OverrideBase(abc.ABC):  # pylint: disable=missing-class-docstring
 
-    def __init__(self, name, content, context, resolve_path, state=None):
+    def __init__(self, name, content, context, resolve_path, state=None):   # noqa, pylint: disable=too-many-arguments
         self._whoami = self.__class__.__name__
         self._context = context
         log.debug("%s.__init__: id=%s name=%s content=%s resolve_path=%s "
@@ -114,7 +116,7 @@ class OverrideBase(abc.ABC):
     @property
     def _override_path(self):
         """ This is the full resolve path for this override object. """
-        path = "{}.{}".format(self._override_resolve_path, self._override_name)
+        path = "{}.{}".format(self._override_resolve_path, self._override_name)   # noqa, pylint: disable=consider-using-f-string
         log.debug("%s._override_path %s", self._whoami, path)
         return path
 
@@ -127,15 +129,17 @@ class OverrideBase(abc.ABC):
         return [dict, list]
 
     @property
-    def context(self):
+    def context(self):  # pylint: disable=missing-function-docstring
         # log.debug("%s.context", self._whoami)
         return self._context
 
     @property
-    def content(self):
+    def content(self):  # pylint: disable=missing-function-docstring
         # log.debug("%s.content (%s)", self._whoami, len(self._stack))
         if len(self._stack):
             return self._stack.current.content
+
+        return None
 
     def add_state(self, _name, content, state=None):
         """
@@ -161,7 +165,7 @@ class OverrideBase(abc.ABC):
         """ Each implementation must have their own means of lookups. """
 
 
-class PTreeOverrideBase(OverrideBase):
+class PTreeOverrideBase(OverrideBase):  # noqa, pylint: disable=missing-class-docstring
 
     def __getattr__(self, name):
         log.debug("%s.__getattr__: unmapped name=%s", self._whoami, name)
@@ -169,18 +173,18 @@ class PTreeOverrideBase(OverrideBase):
             # none is allowed as a return value
             return getattr(self._stack.current, name)
 
-        raise AttributeError("'{}' object has no attribute '{}'".
+        raise AttributeError("'{}' object has no attribute '{}'".  # noqa, pylint: disable=consider-using-f-string
                              format(self._whoami, name))
 
 
-class PTreeOverrideRawType(OverrideBase):
+class PTreeOverrideRawType(OverrideBase):  # noqa, pylint: disable=missing-class-docstring
 
     @classmethod
-    def _override_keys(cls):
+    def _override_keys(cls):  # pylint: disable=missing-function-docstring
         return ['__raw_type__']
 
     @classmethod
-    def check_is_raw_value(cls, content):
+    def check_is_raw_value(cls, content):  # noqa, pylint: disable=missing-function-docstring
         if type(content) in cls.valid_parse_content_types():
             return False
 
@@ -200,14 +204,14 @@ class PTreeOverrideRawType(OverrideBase):
 
     def __getattr__(self, name):
         """ These objects wont have any custom attributes. """
-        raise AttributeError("'{}' object has no attribute '{}'".
+        raise AttributeError("'{}' object has no attribute '{}'".  # noqa, pylint: disable=consider-using-f-string
                              format(self._whoami, name))
 
 
-class MappedOverrideState(object):
+class MappedOverrideState():  # pylint: disable=missing-class-docstring
 
     def __init__(self, owner, content, member_keys):
-        self._whoami = "{}.{}".format(owner.__class__.__name__,
+        self._whoami = "{}.{}".format(owner.__class__.__name__,   # noqa, pylint: disable=consider-using-f-string
                                       self.__class__.__name__)
         self._owner = owner
         self._content = content
@@ -217,11 +221,11 @@ class MappedOverrideState(object):
                   content)
 
     @property
-    def _override_name(self):
-        return self._owner._override_name
+    def _override_name(self):  # pylint: disable=missing-function-docstring
+        return self._owner._override_name  # noqa, pylint: disable=protected-access
 
     @property
-    def content(self):
+    def content(self):  # pylint: disable=missing-function-docstring
         # log.debug("%s.content", self._whoami)
         _content = {}
         for stype in self._stacks:  # pylint: disable=C0206
@@ -230,17 +234,17 @@ class MappedOverrideState(object):
 
         return _content
 
-    def add_obj(self, obj):
+    def add_obj(self, obj):  # pylint: disable=missing-function-docstring
         if isinstance(obj, self._owner.__class__):
-            log.debug("obj name='%s' is a nested mapping", obj._override_name)
+            log.debug("obj name='%s' is a nested mapping", obj._override_name)  # noqa, pylint: disable=protected-access
             stack_type = 'nested'
         else:
-            log.debug("obj name='%s' is a mapping member", obj._override_name)
+            log.debug("obj name='%s' is a mapping member", obj._override_name)  # noqa, pylint: disable=protected-access
             stack_type = 'member'
 
-        name = obj._override_name
+        name = obj._override_name  # noqa, pylint: disable=protected-access
         stack = self._stacks[stack_type]
-        log.debug("%s.add_obj: stack_type=%s name=%s id=%s",
+        log.debug("%s.add_obj: stack_type=%s name=%s id=%s",   # noqa, pylint: disable=protected-access
                   self._whoami, stack_type, name, id(obj))
         if name not in stack:
             log.debug("no stack found for %s '%s' so creating new one",
@@ -260,7 +264,7 @@ class MappedOverrideState(object):
         r = []
         for stype in self._stacks:  # pylint: disable=C0206
             for name, stack in self._stacks[stype].items():
-                r.append("[{}] depth={} ".format(name, len(stack)))
+                r.append("[{}] depth={} ".format(name, len(stack)))   # noqa, pylint: disable=consider-using-f-string
 
         return '\n'.join(r)
 
@@ -289,7 +293,7 @@ class MappedOverrideState(object):
                 # Allow overrides to define a property for non-simple
                 # content to be returned as-is.
                 return getattr(m, _name)
-            except Exception:
+            except Exception:   # noqa, pylint: disable=broad-exception-caught
                 log.debug("%s not found in %s", _name,
                           m.__class__.__name__)
                 if type(m.content) not in [dict, list]:
@@ -302,11 +306,11 @@ class MappedOverrideState(object):
             # allow members to be empty
             return None
 
-        raise AttributeError("'{}' object has no attribute '{}'".
+        raise AttributeError("'{}' object has no attribute '{}'".   # noqa, pylint: disable=consider-using-f-string
                              format(self._whoami, name))
 
 
-class PTreeMappedOverrideBase(OverrideBase):
+class PTreeMappedOverrideBase(OverrideBase):  # noqa, pylint: disable=missing-class-docstring
 
     def __init__(self, name, content, *args, **kwargs):
         log.debug("creating new mapped override id=%s type=%s name=%s",
@@ -315,7 +319,7 @@ class PTreeMappedOverrideBase(OverrideBase):
         super().__init__(name, content, *args, **kwargs)
 
     @property
-    def _override_name(self):
+    def _override_name(self):  # pylint: disable=missing-function-docstring
         """
         We override this to ensure that we return the principle objects name
         even if the name provided is a member name.
@@ -337,34 +341,36 @@ class PTreeMappedOverrideBase(OverrideBase):
         override_keys.
         """
 
-    def get_member_with_key(self, key):
+    def get_member_with_key(self, key):  # noqa, pylint: disable=missing-function-docstring
         log.debug("%s.get_member_with_key: %s", self._whoami, key)
         for m in self._override_mapped_member_types():
-            if key in m._override_keys():
+            if key in m._override_keys():  # noqa, pylint: disable=protected-access
                 return m
 
+        return None
+
     @property
-    def member_keys(self):
+    def member_keys(self):  # pylint: disable=missing-function-docstring
         keys = []
         for m in self._override_mapped_member_types():
-            keys += m._override_keys()
+            keys += m._override_keys()  # noqa, pylint: disable=protected-access
 
         return keys
 
     @property
-    def resolved_member_names(self):
+    def resolved_member_names(self):  # noqa, pylint: disable=missing-function-docstring
         names = []
         for m in self.members:
-            names.append(m._override_name)
+            names.append(m._override_name)  # noqa, pylint: disable=protected-access
 
         return names
 
     @property
-    def num_members(self):
+    def num_members(self):  # noqa, pylint: disable=missing-function-docstring
         return sum([len(item) for item in self._stack])  # noqa, pylint: disable=R1728
 
     @property
-    def members(self):
+    def members(self):  # noqa, pylint: disable=missing-function-docstring
         """
         This combines iterating over the stack with iterating over the stack
         of each item on the stack. This mainly makes sense in scenarios where
@@ -372,7 +378,7 @@ class PTreeMappedOverrideBase(OverrideBase):
         """
         log.debug("%s.members (depth=%s)", self._whoami, len(self._stack))
         for item in self._stack:
-            log.debug("%s.__iter__ item=%s\n%s", self._whoami, item._whoami,
+            log.debug("%s.__iter__ item=%s\n%s", self._whoami, item._whoami,  # noqa, pylint: disable=protected-access
                       repr(item))
             for _item in item:  # pylint: disable=R1737
                 yield _item
@@ -384,7 +390,7 @@ class PTreeMappedOverrideBase(OverrideBase):
                       item._whoami, repr(item))
             yield item
 
-    def add_state(self, name, content, state=None, flush_current=False):
+    def add_state(self, name, content, state=None, flush_current=False):  # noqa, pylint: disable=missing-function-docstring,too-many-branches,too-many-statements
         """
         @param flush_current: Flush the current state and start a new one.
         """
@@ -486,11 +492,11 @@ class PTreeMappedOverrideBase(OverrideBase):
             # allow members to be empty
             return None
 
-        raise AttributeError("'{}' object has no attribute '{}'".
+        raise AttributeError("'{}' object has no attribute '{}'".   # noqa, pylint: disable=consider-using-f-string
                              format(self._whoami, name))
 
 
-class PTreeOverrideManager(object):
+class PTreeOverrideManager():  # pylint: disable=missing-class-docstring
 
     def __init__(self, handlers=None, manager=None, context=None):
         self.allow_stacking = False
@@ -528,23 +534,25 @@ class PTreeOverrideManager(object):
         self.allow_stacking = True
         self._resolved = {}
 
-    def get_mapping(self, name):
+    def get_mapping(self, name):  # pylint: disable=missing-function-docstring
         for mapping in self._mappings:
-            if name in mapping._override_keys():
+            if name in mapping._override_keys():  # noqa, pylint: disable=protected-access
                 return mapping, None
 
-            for member in mapping._override_mapped_member_types():
-                if name in member._override_keys():
+            for member in mapping._override_mapped_member_types():  # noqa, pylint: disable=protected-access
+                if name in member._override_keys():  # noqa, pylint: disable=protected-access
                     return mapping, member
 
         return None, None
 
-    def get_handler(self, name):
+    def get_handler(self, name):  # pylint: disable=missing-function-docstring
         for h in self._handlers:
-            if name in h._override_keys():
+            if name in h._override_keys():  # noqa, pylint: disable=protected-access
                 return h
 
-    def get_resolved_by_type(self, otype):
+        return None
+
+    def get_resolved_by_type(self, otype):  # noqa, pylint: disable=missing-function-docstring
         _results = []
         for item in self._resolved.values():
             if isinstance(item, otype):
@@ -552,13 +560,13 @@ class PTreeOverrideManager(object):
 
         return _results
 
-    def get_resolved(self, name):
+    def get_resolved(self, name):  # noqa, pylint: disable=missing-function-docstring
         log.debug("%s.get_resolved: name=%s (total_resolved=%s)",
                   self.__class__.__name__, name, len(self._resolved))
         name = name.replace('_', '-')
         return self._resolved.get(name)
 
-    def add_resolved(self, name, content, handler, resolve_path,
+    def add_resolved(self, name, content, handler, resolve_path,   # noqa, pylint: disable=too-many-arguments
                      member_name=None, flush_mapped=False):
         """
         @param flush_mapped: if True this tells a mapped override to flush it's
@@ -599,7 +607,7 @@ class PTreeOverrideManager(object):
             obj = handler(name, content, self._context, resolve_path)
             self._resolved[resolved_name] = obj
 
-    def resolve(self, name, content, resolve_path, flush_mapped=False):
+    def resolve(self, name, content, resolve_path, flush_mapped=False):  # noqa, pylint: disable=missing-function-docstring
         log.debug("%s.resolve: name=%s content=%s resolve_path=%s "
                   "flush_mapped=%s", self.__class__.__name__, name, content,
                   resolve_path, flush_mapped)
@@ -626,7 +634,7 @@ class PTreeOverrideManager(object):
             log.debug("resolved mapped override mapping=%s (member=%s)",
                       mapping.__name__, member.__name__)
             member_name = name
-            name = mapping._override_keys()[0]
+            name = mapping._override_keys()[0]  # noqa, pylint: disable=protected-access
             log.debug("using mapping name '%s' (member=%s)", name, member_name)
             self.add_resolved(name, content, mapping, resolve_path,
                               member_name=member_name,
@@ -637,19 +645,19 @@ class PTreeOverrideManager(object):
         log.debug("nothing to resolve")
 
     @property
-    def resolved_unmapped(self):
+    def resolved_unmapped(self):  # pylint: disable=missing-function-docstring
         return self._resolved
 
     @property
-    def resolved(self):
+    def resolved(self):  # pylint: disable=missing-function-docstring
         _r = {}
         _r.update(self._resolved)
         _r.update(self._resolved_mapped)
         return _r
 
 
-class PTreeSection(object):
-    def __init__(self, name, content, parent=None, root=None,
+class PTreeSection():  # noqa, pylint: disable=missing-class-docstring,too-many-instance-attributes
+    def __init__(self, name, content, parent=None, root=None,   # noqa, pylint: disable=too-many-arguments
                  override_handlers=None, override_manager=None,
                  run_hooks=False, resolve_path=None, context=None):
         log.warning("DEPRECATED: this version of propertree is deprecated and "
@@ -680,7 +688,7 @@ class PTreeSection(object):
 
         self.run()
 
-    def _find_leaf_sections(self, section):
+    def _find_leaf_sections(self, section):  # noqa, pylint: disable=missing-function-docstring
         if section.is_leaf:
             return [section]
 
@@ -691,25 +699,25 @@ class PTreeSection(object):
         return leaves
 
     @property
-    def branch_sections(self):
+    def branch_sections(self):  # pylint: disable=missing-function-docstring
         return list(set([s.parent for s in self.leaf_sections]))  # noqa, pylint: disable=R1718
 
     @property
-    def leaf_sections(self):
+    def leaf_sections(self):  # pylint: disable=missing-function-docstring
         return self._find_leaf_sections(self)
 
     @property
-    def is_leaf(self):
+    def is_leaf(self):  # pylint: disable=missing-function-docstring
         return self.content and len(self.sections) == 0
 
     def __getattr__(self, name):
         log.debug("%s.__getattr__: %s", self.__class__.__name__, name)
         return self.manager.get_resolved(name)
 
-    def get_resolved_by_type(self, otype):
+    def get_resolved_by_type(self, otype):  # noqa, pylint: disable=missing-function-docstring
         return self.manager.get_resolved_by_type(otype)
 
-    def run(self):
+    def run(self):  # noqa, pylint: disable=missing-function-docstring,too-many-branches
         if self.root == self and self.run_hooks:
             log.debug("%s.run: running pre_hook", self.__class__.__name__)
             self.pre_hook()
@@ -730,7 +738,7 @@ class PTreeSection(object):
         else:
             self.manager.allow_stacking = False
             if not isinstance(self.content, dict):
-                raise PTreeException("undefined override '{}'".
+                raise PTreeException("undefined override '{}'".   # noqa, pylint: disable=consider-using-f-string
                                      format(self.name))
 
             log.debug("content is dict")
@@ -748,7 +756,7 @@ class PTreeSection(object):
                               content)
                     continue
 
-                rpath = "{}.{}".format(self.resolve_path, name)
+                rpath = "{}.{}".format(self.resolve_path, name)   # noqa, pylint: disable=consider-using-f-string
                 s = PTreeSection(name, content, parent=self, root=self.root,
                                  override_manager=self.manager,
                                  resolve_path=rpath)

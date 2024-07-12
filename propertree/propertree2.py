@@ -25,23 +25,44 @@ REGISTERED_OVERRIDES: dict = {}
 
 
 class MappedMemberPrimaryConflict(Exception):
-
+    """
+    Exception raised when a property is found to be a member of more than one
+    primary.
+    """
     def __init__(self, member_cls, new_primary, existing_primary):
-        super().__init__("trying to set {} _override_primary to {} but it is "
-                         "already set to {}".format(member_cls, new_primary,
-                                                    existing_primary))
+        super().__init__(f"trying to set {member_cls} _override_primary "
+                         f"to {new_primary} but it is "
+                         f"already set to {existing_primary}")
 
 
 class RegistryConflictError(Exception):
-    pass
+    """ Exception raised to indicate that a property has already been
+    registered for a given key name. """
 
 
-class OverrideRegistry(object):
+class InvalidBranchPathError(Exception):
+    """ Raised when a branch is referenced with an invalid path. """
 
+
+class PropertyIsNotAMember(Exception):
+    """ Raised when a mapping tries to access a property as a member when that
+    property is not a member.
+    """
+
+
+class PropertreeTreeError(Exception):
+    """ Generic error for propertree errors. """
+
+
+class OverrideRegistry():
+    """
+    The override registry contains registrations of properties to keys and is
+    then used later to resolve properties as they are discovered in a tree.
+    """
     def __repr__(self):
         info = []
         for key, entry in REGISTERED_OVERRIDES.items():
-            info.append("{}:\n  {}".format(key, entry))
+            info.append(f"{key}:\n  {entry}")
 
         return '\n'.join(info)
 
@@ -63,9 +84,13 @@ class OverrideRegistry(object):
 
     @staticmethod
     def _ensure_not_registered(override_cls, key):
-        conflict_msg = ("registration of override {} key '{{}}' will "
-                        "clobber existing entry from override {{}}".
-                        format(override_cls.__name__))
+        """
+        Ensure that the given key has not already been registered and raise
+        an RegistryConflictError if it has.
+        """
+        conflict_msg = (f"registration of override {override_cls.__name__} "
+                        "key '{}' will clobber existing entry from override "
+                        "{}")
         _registered = REGISTERED_OVERRIDES.get(key)
         if _registered:
             for item in _registered:
@@ -78,6 +103,10 @@ class OverrideRegistry(object):
 
     @classmethod
     def _register(cls, override_cls):
+        """
+        Register the given property class against all keys it has defined and
+        if necessary link to any mappin primaries it maybe associated with.
+        """
         try:
             keys = override_cls._get_override_keys_back_compat()
         except AttributeError:
@@ -131,6 +160,8 @@ class OverrideRegistry(object):
 
     @staticmethod
     def _unregister(override_cls):
+        """
+        Unregister a property (and it's keys) from the registry. """
         try:
             keys = override_cls._get_override_keys_back_compat()
         except AttributeError:
@@ -169,7 +200,7 @@ class OverrideRegistry(object):
 
 
 class OverrideMeta(type):
-
+    """ Used to automatically register property classes on module load. """
     def __init__(cls, _name, _mro, _members):
         if hasattr(cls, '_override_autoregister'):
             if not cls._override_autoregister:
@@ -178,7 +209,8 @@ class OverrideMeta(type):
         OverrideRegistry.register([cls])
 
 
-class PTreeOverrideBase(object, metaclass=OverrideMeta):
+class PTreeOverrideBase(metaclass=OverrideMeta):  # noqa, pylint: disable=too-many-instance-attributes
+    """ Base class for all property implementations. """
     # For internal use only
     _override_primary = None
 
@@ -205,19 +237,27 @@ class PTreeOverrideBase(object, metaclass=OverrideMeta):
 
     @classmethod
     def _get_override_keys_back_compat(cls):
+        """
+        To support backwards compatibility with propertree.py we support old
+        and new ways of defining keys.
+        """
         try:
             # DEPRECATED: will remove at some point
-            keys = cls._override_keys()  # pylint: disable=E1102
+            keys = cls._override_keys()  # pylint: disable=not-callable
         except TypeError:
             keys = cls._override_keys
 
         if keys is None:
-            return
+            return []
 
         return keys or [cls.__name__.lower()]
 
     @classmethod
     def _get_override_members_back_compat(cls):
+        """
+        To support backwards compatibility with propertree.py we support old
+        and new ways of defining mapping members.
+        """
         if hasattr(cls, '_override_mapped_member_types'):
             return cls._override_mapped_member_types()
 
@@ -280,15 +320,21 @@ class PTreeOverrideBase(object, metaclass=OverrideMeta):
 
     @property
     def _override_parent(self):
-        if self._override_parent_path:
-            return self.manager.property_cache[self._override_parent_path]
+        if not self._override_parent_path:
+            return None
+
+        return self.manager.property_cache[self._override_parent_path]
 
     @property
     def _override_path(self):
         """ This is the full resolve path for this override object. """
-        return "{}.{}".format(self._override_resolve_path, self._override_name)
+        return f"{self._override_resolve_path}.{self._override_name}"
 
     def _len_query(self):
+        """ The way we query the size/length of a property differs depending
+        on the type of property so this supports the different ways to
+        query that information.
+         """
         if isinstance(self, PTreeMappedOverrideBase):
             return PropQuery(group_id=self.group_id,
                              allow_implicit_primary=self.is_implicit_primary)
@@ -335,8 +381,8 @@ class PTreeOverrideBase(object, metaclass=OverrideMeta):
         if _name in self.content:
             return self.content[_name]
 
-        raise AttributeError("'{}' object has no attribute '{}'"
-                             .format(self.__class__.__name__, name))
+        raise AttributeError(f"'{self.__class__.__name__}' object has no "
+                             f"attribute '{name}'")
 
     def __getattribute__(self, name):
         try:
@@ -345,21 +391,23 @@ class PTreeOverrideBase(object, metaclass=OverrideMeta):
             try:
                 return self._get_override_attribute(name)
             except AttributeError:
-                raise exc  # pylint: disable=W0707
+                raise exc  # pylint: disable=raise-missing-from
 
 
 class PTreeOverrideLiteralType(PTreeOverrideBase):
+    """ Property for literal types. """
     _override_keys = ['__override_literal_type__']
 
     @staticmethod
     def has_valid_type(content):
+        """ Ensure the content has a type that we support. """
         return type(content) in [str, int, float, bool]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not self.has_valid_type(self.content):
-            raise TypeError("{} is not a valid raw type for {}".format(
-                            self.content, self.__class__.__name__))
+            raise TypeError(f"{self.content} is not a valid raw type for "
+                            f"{self.__class__.__name__}")
 
     def __type__(self):
         return type(self.content)
@@ -371,8 +419,8 @@ class PTreeOverrideLiteralType(PTreeOverrideBase):
         return float(self.content)
 
     def __bool__(self):
-        assert isinstance(self.content, bool), ("{} does not have type bool".
-                                                format(self.content))
+        assert isinstance(self.content, bool), (f"{self.content} does not "
+                                                "have type bool")
         return self.content
 
     def __str__(self):
@@ -421,9 +469,9 @@ class PTreeLogicalGrouping(PTreeOverrideBase):
     @classmethod
     def is_exit_condition_met(cls, group_name, result):
         if not isinstance(result, bool):
-            raise TypeError("{} item has non-bool type '{}' - unable to "
-                            "determine exit condition for logical op='{}'".
-                            format(cls.__name__, type(result), group_name))
+            raise TypeError(f"{cls.__name__} item has non-bool type "
+                            f"'{type(result)}' - unable to determine exit "
+                            f"condition for logical op='{group_name}'")
 
         if group_name in ['and', 'nand', 'not']:
             if cls.and_stop_on_first_false() and not result:
@@ -442,8 +490,8 @@ class PTreeLogicalGrouping(PTreeOverrideBase):
 
     @property
     def group_op_map(self):
-        return {'and': lambda r: all(r),
-                'or': lambda r: any(r),
+        return {'and': all,
+                'or': any,
                 'nand': lambda r: not all(r),
                 'not': lambda r: not all(r),
                 'nor': lambda r: not any(r),
@@ -465,7 +513,8 @@ class PTreeLogicalGrouping(PTreeOverrideBase):
                                                  query,
                                                  fetch_whole_stack=True)
 
-    def fetch_item_result(self, item):
+    @staticmethod
+    def fetch_item_result(item):
         """
         By default we expect each item to be an object with a 'result'
         attribute. Override this method if this is not the case.
@@ -502,7 +551,7 @@ class PTreeLogicalGrouping(PTreeOverrideBase):
                 break
 
         if not results:
-            raise Exception("unexpected empty results group")
+            raise PropertreeTreeError("unexpected empty results group")
 
         ret = self.group_op_map[self.group_name](results)
         log.info("%s.%s(%s) -> %s (group_ids=%s)", self.__class__.__name__,
@@ -513,6 +562,7 @@ class PTreeLogicalGrouping(PTreeOverrideBase):
 
 
 class PTreeMappedOverrideBase(PTreeOverrideBase):
+    """ Base class for implementations of mapped properties. """
     # Add one or more property classes that will be members of this mapping.
     _override_members: list = []
 
@@ -561,7 +611,7 @@ class PTreeMappedOverrideBase(PTreeOverrideBase):
 
         # First search for all members excluding implementations of
         # PTreeLogicalGrouping.
-        propfilter = ["{}.{}".format(self._override_path, name) for name in
+        propfilter = [f"{self._override_path}.{name}" for name in
                       self._member_keys
                       if name not in self._member_keys_logical_grouping]
         query = PropQuery(mapping_id=self.mapping_id, group_id=self.group_id,
@@ -575,7 +625,7 @@ class PTreeMappedOverrideBase(PTreeOverrideBase):
         # is because each item will have its own group id and is therefore
         # independent of others i.e. iterating over an item won't give you
         # the stack.
-        propfilter = ["{}.{}".format(self._override_path, name) for name in
+        propfilter = [f"{self._override_path}.{name}" for name in
                       self._member_keys_logical_grouping]
         query = PropQuery(mapping_id=self.mapping_id, group_id=self.group_id)
         buildinfo = BuildInfo(query, fetch_whole_stack=True)
@@ -591,11 +641,11 @@ class PTreeMappedOverrideBase(PTreeOverrideBase):
         query = PropQuery(allow_members=True, mapping_id=self.mapping_id,
                           allow_implicit_primary=True, group_id=self.group_id)
         buildinfo = BuildInfo(query)
-        path = "{}.{}".format(self._override_path, name)
+        path = f"{self._override_path}.{name}"
         flat_path = self.manager.flatten_path(path)
 
         if flat_path not in self.manager.properties:
-            path = "{}.{}".format(self._override_path, name.replace('_', '-'))
+            path = f"{self._override_path}.{name.replace('_', '-')}"
             flat_path = self.manager.flatten_path(path)
 
         if flat_path not in self.manager.properties:
@@ -612,7 +662,7 @@ class PTreeMappedOverrideBase(PTreeOverrideBase):
 
 
 class State(UserDict):
-
+    """ Representation of property state. """
     def __init__(self, content, node_cls, path, parent=None,
                  is_implicit_primary=False, has_implicit_primary=False,
                  mapping_ids=None, group_ids=None, path_context=None):
@@ -641,21 +691,22 @@ class State(UserDict):
                              list, dict or singleton, this gives us a way to
                              know e.g. if we are within a new list item or not.
         """
-        self.data = {'idx': None, 'content': content, 'cls': node_cls,
-                     'path': path, 'parent': parent,
-                     'is_implicit_primary': is_implicit_primary,
-                     'has_implicit_primary': has_implicit_primary,
-                     'mapping_ids': mapping_ids or [],
-                     'group_ids': group_ids or [],
-                     'is_copy': False,
-                     'path_context': path_context}
+        data = {'idx': None, 'content': content, 'cls': node_cls,
+                'path': path, 'parent': parent,
+                'is_implicit_primary': is_implicit_primary,
+                'has_implicit_primary': has_implicit_primary,
+                'mapping_ids': mapping_ids or [],
+                'group_ids': group_ids or [],
+                'is_copy': False,
+                'path_context': path_context}
+        super().__init__(data)
 
     def __getitem__(self, key):
         if key == 'cache_path':
             if self.data['idx'] is None:
                 raise ValueError("state item index not set")
 
-            return "{}:{}".format(self.data['path'], self.data['idx'])
+            return f"{self.data['path']}:{self.data['idx']}"
 
         return super().__getitem__(key)
 
@@ -673,12 +724,14 @@ class State(UserDict):
             if key == 'content':
                 continue
 
-            info.append("{}={}".format(key, val))
+            info.append(f"{key}={val}")
 
         return ", ".join(info)
 
 
-class PropQuery(object):
+class PropQuery():  # pylint: disable=too-many-instance-attributes
+    """ Property query object. Provides a common way to query for properties.
+    """
     def __init__(self, mapping_id=None, group_id=None,
                  allow_members=True, allow_primaries=True,
                  allow_members_if_group_id_matches=False,
@@ -726,24 +779,22 @@ class PropQuery(object):
         self.force_group_head_id = force_group_head_id
 
     def __repr__(self):
-        return ("{}(mapping_id={}, group_id={}, allow_members={}, "
-                "allow_primaries={}, "
-                "allow_grouped={}, allow_implicit_primary={}, "
-                "allow_nested_mappings={}, "
-                "allow_members_if_group_id_matches={})".
-                format(self.__class__.__name__,
-                       self.mapping_id, self.group_id, self.allow_members,
-                       self.allow_primaries,
-                       self.allow_grouped, self.allow_implicit_primary,
-                       self.allow_nested_mappings,
-                       self.allow_members_if_group_id_matches))
+        return (f"{self.__class__.__name__}(mapping_id={self.mapping_id}, "
+                f"group_id={self.group_id}, "
+                f"allow_members={self.allow_members}, "
+                f"allow_primaries={self.allow_primaries}, "
+                f"allow_grouped={self.allow_grouped}, "
+                f"allow_implicit_primary={self.allow_implicit_primary}, "
+                f"allow_nested_mappings={self.allow_nested_mappings}, "
+                "allow_members_if_group_id_matches="
+                f"{self.allow_members_if_group_id_matches})")
 
     def _gid_to_check(self, item):
         # NOTE: if item is a grouping, its unique id is at the head of
         #       group_ids so if we want to match it as a member of another
         #       grouping i.e. nested then we need to get the penultimate id.
         if not item['group_ids']:
-            return
+            return None
 
         if (issubclass(item['cls'], PTreeLogicalGrouping) and
                 len(item['group_ids']) > 1 and not self.force_group_head_id):
@@ -782,12 +833,13 @@ class PropQuery(object):
 
         return True
 
-    def _mid_to_check(self, item):
+    @staticmethod
+    def _mid_to_check(item):
         # NOTE: if item is a mapping, its unique id is at the head of
         #       mapping_ids so if we want to match it as a member of another
         #       mapping i.e. nested then we need to get the penultimate id.
         if not item['mapping_ids']:
-            return
+            return None
 
         if (issubclass(item['cls'], PTreeMappedOverrideBase) and
                 len(item['mapping_ids']) > 1):
@@ -857,7 +909,8 @@ class PropQuery(object):
         return True
 
 
-class BuildInfo(object):
+class BuildInfo():  # pylint: disable=too-few-public-methods
+    """ Settings for building a property object. """
     def __init__(self,
                  query: PropQuery,
                  path_filter: str | None = None,
@@ -899,7 +952,7 @@ class BuildInfo(object):
 
 
 class PropertyCache(UserDict):
-
+    """ Cache for built property objects. """
     def __getitem__(self, name):
         try:
             return super().__getitem__(name)
@@ -911,15 +964,18 @@ class PropertyCache(UserDict):
 
 
 class PropertyStateManager(UserList):
-
+    """ Stack for property state objects providing methods to query and
+    build property objects. """
     def __init__(self, property_cache, initial_state=None, stacked=False):
         self.property_cache = property_cache
         self.stacked = stacked
         if initial_state:
             initial_state['idx'] = 0
-            self.data = [initial_state]
+            data = [initial_state]
         else:
-            self.data = []
+            data = []
+
+        super().__init__(data)
 
     def _assert_field_consistency(self, field):
         if len(self) <= 1:
@@ -929,7 +985,7 @@ class PropertyStateManager(UserList):
         for item in self.data[1:]:
             a = first[field]
             b = item[field]
-            msg = "{} != {} (field={})".format(a, b, field)
+            msg = f"{a} != {b} (field={field})"
             try:
                 assert a == b, msg
             except AssertionError:
@@ -1015,7 +1071,7 @@ class PropertyStateManager(UserList):
 
     def make(self, root, context, item, manager):
         path, _, name = item['path'].rpartition('.')
-        cache_key = "{}:{}".format(item['path'], item['idx'])
+        cache_key = f"{item['path']}:{item['idx']}"
         if cache_key in self.property_cache:
             log.info("creating %s object (path=%s, idx=%s, from_cache=True)",
                      item['cls'].__name__, item['path'], item['idx'])
@@ -1049,21 +1105,19 @@ class PropertyStateManager(UserList):
         return PropertyStateManager(self.property_cache, initial_state=copied)
 
     def __repr__(self):
-        info = "\n{}:".format(self[0]['cls'].__name__)  # pylint: disable=E1101
+        info = f"\n{self[0]['cls'].__name__}:"  # pylint: disable=no-member
         for item in self:
-            info += ("\n[{}] path={}, is_implicit_primary={}, "
-                     "has_implicit_primary={}, "
-                     "mapping_ids={}, group_ids={}".
-                     format(item['idx'], item['path'],
-                            item['is_implicit_primary'],
-                            item['has_implicit_primary'],
-                            item['mapping_ids'], item['group_ids']))
+            info += (f"\n[{item['idx']}] path={item['path']}, "
+                     f"is_implicit_primary={item['is_implicit_primary']}, "
+                     f"has_implicit_primary={item['has_implicit_primary']}, "
+                     f"mapping_ids={item['mapping_ids']}, "
+                     f"group_ids={item['group_ids']}")
 
         return info
 
 
 class PTreeOverrideManager(UserDict):
-
+    """ Manages a property tree. """
     def __init__(self, root_path, content, override_handlers):
         self.override_handlers = override_handlers
         self._branches = {}
@@ -1071,9 +1125,9 @@ class PTreeOverrideManager(UserDict):
         self._branch_properties = {}
         self._property_cache = PropertyCache()
         log.info("starting build")
-        self.data = self._build(root_path, content, {},
-                                self._branch_properties,
-                                parent_branch=root_path)
+        super().__init__(self._build(root_path, content, {},
+                                     self._branch_properties,
+                                     parent_branch=root_path))
         log.info("build complete")
         if not self.data:
             # This allows us to getattr() in a section that has no branches
@@ -1085,10 +1139,10 @@ class PTreeOverrideManager(UserDict):
             # by name whereas global are keyed by path and therefore can have
             # more than one entry for the same property (think groups etc).
             try:
-                msg = ("the number of global properties ({}) is less than the "
-                       "the total number of branch properties ({})".
-                       format(len(self.properties),
-                              len(self._branch_properties)))
+                msg = ("the number of global properties "
+                       f"({len(self.properties)}) is less than the "
+                       "the total number of branch properties "
+                       f"({len(self._branch_properties)})")
                 assert (len(self.properties) ==
                         len(self._branch_properties)), msg
             except AssertionError:
@@ -1239,7 +1293,8 @@ class PTreeOverrideManager(UserDict):
 
         self._branches[path] = {'is_leaf': True, 'parent': parent_branch}
 
-    def _copy_properties(self, properties):
+    @staticmethod
+    def _copy_properties(properties):
         return {name: p.deepcopy() for name, p in properties.items()}
 
     def _register_property(self, properties, state, stacked):
@@ -1264,11 +1319,11 @@ class PTreeOverrideManager(UserDict):
             #       resolve path. This has the potential for conflicts and must
             #       be protected as such.
             if not properties[name][0]['is_copy']:
-                msg = ("A property with name={} is already registered "
-                       "(path={}). Overwriting this property with one of the "
-                       "same name with path={} will cause state to be lost.".
-                       format(name, properties[name][0]['path'],
-                              state['path']))
+                msg = (f"A property with name={name} is already registered "
+                       f"(path={properties[name][0]['path']}). Overwriting "
+                       "this property with one of the "
+                       f"same name with path={state['path']} will cause state "
+                       "to be lost.")
                 raise RegistryConflictError(msg)
 
         prop = PropertyStateManager(self._property_cache, state,
@@ -1292,7 +1347,7 @@ class PTreeOverrideManager(UserDict):
         """
         primary_key = primary_cls._get_override_keys_back_compat()[0]
         parent_path = member_path.rpartition('.')[0]
-        primary_path = "{}.{}".format(parent_path, primary_key)
+        primary_path = f"{parent_path}.{primary_key}"
         log.info("implicitly registering mapping primary '%s' at "
                  "path '%s'", primary_key, primary_path)
         primary_state = State(content, primary_cls, primary_path,
@@ -1309,7 +1364,7 @@ class PTreeOverrideManager(UserDict):
         self._register_property(properties, primary_state, True)
         return primary_state
 
-    def _ensure_member_primary(self, member_path: str, node_cls, content,
+    def _ensure_member_primary(self, member_path: str, node_cls, content,  # noqa, pylint: disable=too-many-locals,too-many-branches
                                properties: dict,
                                parent_state: State,
                                path_context=None):
@@ -1510,7 +1565,8 @@ class PTreeOverrideManager(UserDict):
 
         return {}
 
-    def _ensure_not_invalid_member(self, parent_cls, prop_cls):
+    @staticmethod
+    def _ensure_not_invalid_member(parent_cls, prop_cls):
         if not issubclass(parent_cls, PTreeMappedOverrideBase):
             return True
 
@@ -1520,11 +1576,10 @@ class PTreeOverrideManager(UserDict):
 
         valid_members = [m.__name__ for m in parent_cls.
                          _get_override_members_back_compat()]
-        raise Exception("property {} inside mapping {} but is "
-                        "not a member of that mapping. Valid "
-                        "members are: {}".
-                        format(prop_cls.__name__, parent_cls.__name__,
-                               ', '.join(valid_members)))
+        raise PropertyIsNotAMember(f"property {prop_cls.__name__} inside "
+                                   f"mapping {parent_cls.__name__} but is "
+                                   "not a member of that mapping. Valid "
+                                   f"members are: {', '.join(valid_members)}")
 
     def _get_override_handler(self, key):
         """
@@ -1532,7 +1587,7 @@ class PTreeOverrideManager(UserDict):
         """
         return self.override_handlers[key][0]
 
-    def _build(self, root_path, content, parent_info, properties,
+    def _build(self, root_path, content, parent_info, properties,   # noqa, pylint: disable=too-many-locals,too-many-branches,too-many-statements
                stacked=False, path_context=None, parent_branch=None):
         log.debug("building root_path=%s (parent=%s)", root_path, parent_info)
         tree = {}
@@ -1551,7 +1606,7 @@ class PTreeOverrideManager(UserDict):
             #            descendants get the same inherited properties.
             branches = []
             for name, _content in content.items():
-                path = "{}.{}".format(root_path, name)
+                path = f"{root_path}.{name}"
                 if parent_state:
                     # Don't tokenise property attributes
                     parent = parent_state['cls']
@@ -1609,7 +1664,7 @@ class PTreeOverrideManager(UserDict):
                                           self._get_override_handler(name))
 
                 if parent_info:
-                    path = "{}.{}".format(parent_info['path'], name)
+                    path = f"{parent_info['path']}.{name}"
 
                 subtree = self._build_branch_property(path, node_cls,
                                                       _content,
@@ -1623,7 +1678,7 @@ class PTreeOverrideManager(UserDict):
             # Now do any branches found at this level
             for (name, _content) in branches:
                 log.info("new branch: %s", name)
-                path = "{}.{}".format(root_path, name)
+                path = f"{root_path}.{name}"
                 # make copy to allow divergence and inheritance
                 tree[path] = nextproperties = self._copy_properties(properties)
                 # create new branch
@@ -1645,7 +1700,7 @@ class PTreeOverrideManager(UserDict):
                     tree = ChainMap(tree, subtree)
         elif PTreeOverrideLiteralType.has_valid_type(content):
             name = PTreeOverrideLiteralType._get_override_keys_back_compat()[0]
-            path = "{}.{}".format(root_path, name)
+            path = f"{root_path}.{name}"
             node_cls = self._get_override_handler(name)
             subtree = self._build_branch_property(path, node_cls, content,
                                                   properties,
@@ -1660,20 +1715,25 @@ class PTreeOverrideManager(UserDict):
         return tree
 
 
-class BranchInfo(object):
+class BranchInfo():
+    """ Holds information about a branch. """
     def __init__(self, path):
         if path is None:
-            raise Exception("invalid branch path {}".format(path))
+            raise InvalidBranchPathError(f"invalid branch path {path}")
 
-        self.path = path
+        self._path = path
+
+    @property
+    def path(self):
+        return self._path.rpartition('.')[2]
 
     @property
     def name(self):
         return self.path.rpartition('.')[2]
 
 
-class PTreeSection(object):
-
+class PTreeSection():  # noqa, pylint: disable=too-many-instance-attributes
+    """ The representation of the property tree. """
     def __init__(self,
                  name: str,
                  content: dict | None = None,
@@ -1711,7 +1771,7 @@ class PTreeSection(object):
             self.root = self
         else:
             if resolve_path is None:
-                raise Exception("resolve path is None")
+                raise PropertreeTreeError("resolve path is None")
 
             self.root = root
 
@@ -1754,7 +1814,7 @@ class PTreeSection(object):
 
     def _get_section_attribute(self, name):
         log.info("%s._get_section_attribute(%s)", self.name, name)
-        resolve_path = "{}.{}".format(self.resolve_path, name)
+        resolve_path = f"{self.resolve_path}.{name}"
         if resolve_path in self.manager.branches:
             return PTreeSection(resolve_path,
                                 parent=self,
@@ -1770,7 +1830,7 @@ class PTreeSection(object):
                                         allow_implicit_primary=True))
         return next(self.manager.make_property(
                                    self.root,
-                                   "{}.{}".format(self.resolve_path, name),
+                                   f"{self.resolve_path}.{name}",
                                    self.context, buildinfo,
                                    allow_global=True), None)
 

@@ -187,13 +187,13 @@ class TestBasicOverrides(TestPTree2Base):
         root = PTreeSection('script', yaml.safe_load(prop_basic_flat))
         self.assert_leaves(root, ['S1'])
         self.check_len_and_type(root.S1.valuecheck, 1, properties.ValueCheck)
-        self.assertEqual(root.S1.valuecheck._override_parent, None)
+        self.assertEqual(root.S1.valuecheck.override_parent, None)
         self.assertEqual(root.S1.valuecheck.result, True)
 
     def test_basic_property_attr_not_found(self):
 
         class ValueCheckX(properties.ValueCheck):
-            _override_keys = ['valuecheckx']
+            override_keys = ['valuecheckx']
 
             @property
             def testattr1(self):
@@ -449,7 +449,7 @@ class TestOverrideLogicalGrouping(TestPTree2Base):
         for item in root.S1:
             checked.append(item.result)
             if isinstance(item, PTreeLogicalGrouping):
-                self.assertEqual(item._override_group_stats['items_executed'],
+                self.assertEqual(item.override_group_stats['items_executed'],
                                  2)
 
         self.assertEqual(sorted(checked), [False, True, True])
@@ -474,7 +474,7 @@ class TestOverrideLogicalGrouping(TestPTree2Base):
             for item in root.S1:
                 checked.append(item.result)
                 if isinstance(item, PTreeLogicalGrouping):
-                    num_items = item._override_group_stats['items_executed']
+                    num_items = item.override_group_stats['items_executed']
                     self.assertEqual(num_items, 1)
 
             self.assertEqual(sorted(checked), [False, False])
@@ -643,7 +643,7 @@ class TestOverrideLogicalGrouping(TestPTree2Base):
         result = None
         for op in root.S1:
             result = op.result
-            self.assertEqual(op._override_group_stats['items_executed'], 2)
+            self.assertEqual(op.override_group_stats['items_executed'], 2)
 
         self.assertEqual(result, False)
 
@@ -661,7 +661,7 @@ class TestOverrideLogicalGrouping(TestPTree2Base):
         result = None
         for op in root.S1:
             result = op.result
-            self.assertEqual(op._override_group_stats['items_executed'], 2)
+            self.assertEqual(op.override_group_stats['items_executed'], 2)
 
         self.assertEqual(result, True)
 
@@ -679,7 +679,7 @@ class TestOverrideLogicalGrouping(TestPTree2Base):
         result = None
         for op in root.S1:
             result = op.result
-            self.assertEqual(op._override_group_stats['items_executed'], 2)
+            self.assertEqual(op.override_group_stats['items_executed'], 2)
 
         self.assertEqual(result, True)
 
@@ -715,7 +715,7 @@ class TestMappedOverrides(TestPTree2Base):
             root = PTreeSection('script',
                                 yaml.safe_load(mapped_property_basic_members))
             for primary in root.S1:
-                self.assertEqual(primary.deepmember1._override_name,
+                self.assertEqual(primary.deepmember1.override_name,
                                  'deepmember1')
                 with self.assertRaises(AttributeError):
                     primary.deepmember2
@@ -768,23 +768,23 @@ class TestMappedOverrides(TestPTree2Base):
         for primary in root.S1:
             self.check_len_and_type(primary, 1, properties.MapPrimary)
             for member in primary.members:
-                if member._override_name == 'mapmember1':
+                if member.override_name == 'mapmember1':
                     self.assertEqual(type(member), properties.MapMember1)
                 else:
                     self.assertEqual(type(member), properties.MapMember2)
 
         mp = root.S1.mapprimary
-        self.assertEqual(mp._override_parent, None)
+        self.assertEqual(mp.override_parent, None)
         self.assertEqual(type(mp), properties.MapPrimary)
-        self.assertEqual(mp.mapmember1._override_parent._override_path,
+        self.assertEqual(mp.mapmember1.override_parent.override_path,
                          'script.S1.mapprimary')
         self.assertEqual(type(mp.mapmember1), properties.MapMember1)
-        self.assertEqual(mp.mapmember1._override_name, 'mapmember1')
+        self.assertEqual(mp.mapmember1.override_name, 'mapmember1')
         self.assertEqual(mp.mapmember1.key, 'cheese')
         self.assertEqual(mp.mapmember1.value, 'smelly')
         self.assertEqual(type(mp.mapmember2), properties.MapMember2)
-        self.assertEqual(mp.mapmember2._override_name, 'mapmember2')
-        self.assertEqual(mp.mapmember2._override_parent._override_path,
+        self.assertEqual(mp.mapmember2.override_name, 'mapmember2')
+        self.assertEqual(mp.mapmember2.override_parent.override_path,
                          'script.S1.mapprimary')
         self.assertEqual(mp.mapmember2.key, 'cheese')
         self.assertEqual(mp.mapmember2.value, 'ripe')
@@ -795,18 +795,18 @@ class TestMappedOverrides(TestPTree2Base):
         for mpitem in mp:
             self.assertEqual(type(mpitem), properties.MapPrimary)
             member = mpitem.mapmember1
-            members.append(member._override_name)
+            members.append(member.override_name)
             self.assertEqual(type(member), properties.MapMember1)
-            self.assertEqual(member._override_name, 'mapmember1')
-            self.assertEqual(member._override_parent._override_path,
+            self.assertEqual(member.override_name, 'mapmember1')
+            self.assertEqual(member.override_parent.override_path,
                              'script.S2.mapprimary')
             self.assertEqual(member.key, 'cheese')
             self.assertEqual(member.value, 'cheddar')
 
             member = mpitem.mapmember2
-            members.append(member._override_name)
-            self.assertEqual(member._override_name, 'mapmember2')
-            self.assertEqual(member._override_parent._override_path,
+            members.append(member.override_name)
+            self.assertEqual(member.override_name, 'mapmember2')
+            self.assertEqual(member.override_parent.override_path,
                              'script.S2.mapprimary')
             self.assertEqual(member.key, 'cheese')
             self.assertEqual(member.value, 'wensleydale')
@@ -816,7 +816,7 @@ class TestMappedOverrides(TestPTree2Base):
     def test_mapped_property_attr_not_found(self):
 
         class MapPrimaryX(properties.MapPrimary):
-            _override_keys = ['mapprimaryx']
+            override_keys = ['mapprimaryx']
 
             @property
             def testattr1(self):
@@ -909,11 +909,11 @@ class TestMappedOverrides(TestPTree2Base):
         self.assertEqual(type(mp), properties.MapPrimary)
         for member in mp.members:
             self.assertEqual(type(member), properties.MapMember1)
-            self.assertEqual(member._override_name, 'mapmember1')
+            self.assertEqual(member.override_name, 'mapmember1')
             for item in member:
                 self.assertEqual(type(item), properties.MapMember1)
-                self.assertEqual(item._override_name, 'mapmember1')
-                self.assertEqual(item._override_parent._override_path,
+                self.assertEqual(item.override_name, 'mapmember1')
+                self.assertEqual(item.override_parent.override_path,
                                  'script.S1.mapprimary')
                 self.assertEqual(item.key, 'cheese')
                 cheese_types.append(item.value)
@@ -994,7 +994,7 @@ class TestMappedOverrides(TestPTree2Base):
             for item in member:
                 results.append(item.result)
                 if isinstance(member, PTreeLogicalGrouping):
-                    num_items = item._override_group_stats['items_executed']
+                    num_items = item.override_group_stats['items_executed']
                     self.assertEqual(num_items, 2)
 
         self.assertEqual(results, [False, True])
@@ -1023,12 +1023,12 @@ class TestMappedOverrides(TestPTree2Base):
                 member, 1,
                 properties.PTreeLogicalGroupingWithCheckRefs)
             for item in member:
-                self.assertEqual(item._override_parent._override_path,
+                self.assertEqual(item.override_parent.override_path,
                                  'script.S1.requires')
                 members.append(item.__class__.__name__)
                 self.assertEqual(item.result, True)
                 # Each item should be its own mapping with its own primary
-                num_items = item._override_group_stats['items_executed']
+                num_items = item.override_group_stats['items_executed']
                 self.assertEqual(num_items, 2)
 
         self.assertEqual(members, ['PTreeLogicalGroupingWithCheckRefs'])
@@ -1052,7 +1052,7 @@ class TestMappedOverrides(TestPTree2Base):
             self.check_len_and_type(item, 1, properties.PTreeLogicalGrouping)
             self.assertEqual(item.result, True)
             # Each item should be its own mapping with its own primary
-            num_items.append(item._override_group_stats['items_executed'])
+            num_items.append(item.override_group_stats['items_executed'])
 
         self.assertEqual(num_items, [2])
 
@@ -1078,14 +1078,14 @@ class TestMappedOverrides(TestPTree2Base):
                 primaries.append(type(primary))
                 self.assertEqual(type(primary), properties.MapPrimary)
                 for requires in primary.members:
-                    self.assertEqual(requires._override_parent._override_path,
+                    self.assertEqual(requires.override_parent.override_path,
                                      'script.mapprimary')
                     self.check_len_and_type(requires, 1, properties.Requires)
                     for requires_item in requires:
                         members.append(type(requires))
                         for typecheck in requires_item.members:
-                            self.assertEqual(typecheck._override_parent.
-                                             _override_path,
+                            self.assertEqual(typecheck.override_parent.
+                                             override_path,
                                              'script.mapprimary.requires')
                             self.check_len_and_type(typecheck, 2,
                                                     properties.TypeCheck)
@@ -1146,7 +1146,7 @@ class TestMappedOverrides(TestPTree2Base):
                                     properties.
                                     PTreeLogicalGroupingWithCheckRefs)):
                                 loggroup_check[item.group_name] = \
-                                    item._override_group_stats[
+                                    item.override_group_stats[
                                         'items_executed']
 
         # its one because the first item is True
@@ -1195,7 +1195,7 @@ class TestMappedOverrides(TestPTree2Base):
                         members.append(type(item))
                         self.assertFalse(item.result)
                         loggroup_check[item.group_name] = \
-                            item._override_group_stats['items_executed']
+                            item.override_group_stats['items_executed']
 
         self.assertEqual(loggroup_check, {'and': 2})
         self.assertEqual(primaries, [properties.MapPrimary])
@@ -1442,16 +1442,16 @@ class TestLargeScript(TestPTree2Base):
                          ['S1', 'S2'])
 
         for check in root.S1.checks:
-            if check._override_name == 'mycheck':
+            if check.override_name == 'mycheck':
                 self.assertEqual(len(check), 1)
-            elif check._override_name == 'mycheck2':
+            elif check.override_name == 'mycheck2':
                 self.assertEqual(len(check), 1)
-            elif check._override_name == 'mycheck3':
+            elif check.override_name == 'mycheck3':
                 self.assertEqual(len(check), 1)
             else:
                 raise Exception("unknown name")  # noqa,pylint: disable=broad-exception-raised
 
-            labels.append(check._override_name)
+            labels.append(check.override_name)
             self.assertEqual(check.result, True)
 
         self.assertEqual(labels, ['mycheck', 'mycheck2', 'mycheck3'])
@@ -1459,7 +1459,7 @@ class TestLargeScript(TestPTree2Base):
         labels = []
         for conclusion in root.S1.conclusions:
             labels.append(conclusion.name)
-            self.assertEqual(conclusion._override_name, 'conclusion')
+            self.assertEqual(conclusion.override_name, 'conclusion')
             self.assertEqual(conclusion.name, 'isbar')
             self.assertEqual(conclusion.decision.result, True)
             self.assertEqual(conclusion.raises.type, 'FooType')

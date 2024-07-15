@@ -30,7 +30,7 @@ from . import utils
 
 
 class PTreeInput(PTreeOverrideBase):  # noqa,pylint: disable=too-few-public-methods
-    _override_autoregister = False
+    override_autoregister = False
 
     @classmethod
     def _override_keys(cls):
@@ -38,7 +38,7 @@ class PTreeInput(PTreeOverrideBase):  # noqa,pylint: disable=too-few-public-meth
 
 
 class PTreeMessage(PTreeOverrideBase):  # noqa,pylint: disable=too-few-public-methods
-    _override_autoregister = False
+    override_autoregister = False
 
     @classmethod
     def _override_keys(cls):
@@ -49,7 +49,7 @@ class PTreeMessage(PTreeOverrideBase):  # noqa,pylint: disable=too-few-public-me
 
 
 class PTreeMeta(PTreeOverrideBase):  # noqa,pylint: disable=too-few-public-methods
-    _override_autoregister = False
+    override_autoregister = False
 
     @classmethod
     def _override_keys(cls):
@@ -57,7 +57,7 @@ class PTreeMeta(PTreeOverrideBase):  # noqa,pylint: disable=too-few-public-metho
 
 
 class PTreeSettings(PTreeOverrideBase):  # noqa,pylint: disable=too-few-public-methods
-    _override_autoregister = False
+    override_autoregister = False
 
     @classmethod
     def _override_keys(cls):
@@ -69,7 +69,7 @@ class PTreeSettings(PTreeOverrideBase):  # noqa,pylint: disable=too-few-public-m
 
 
 class PTreeAction(PTreeOverrideBase):  # noqa,pylint: disable=too-few-public-methods
-    _override_autoregister = False
+    override_autoregister = False
 
     @classmethod
     def _override_keys(cls):
@@ -77,7 +77,7 @@ class PTreeAction(PTreeOverrideBase):  # noqa,pylint: disable=too-few-public-met
 
 
 class PTreeLiterals(PTreeOverrideBase):  # noqa,pylint: disable=too-few-public-methods
-    _override_autoregister = False
+    override_autoregister = False
 
     @classmethod
     def _override_keys(cls):
@@ -85,15 +85,12 @@ class PTreeLiterals(PTreeOverrideBase):  # noqa,pylint: disable=too-few-public-m
 
 
 class PTreeMappedGroup(PTreeMappedOverrideBase):  # noqa,pylint: disable=too-few-public-methods
-    _override_autoregister = False
+    override_autoregister = False
+    override_members = [PTreeSettings, PTreeAction]
 
     @classmethod
     def _override_keys(cls):
         return ['group']
-
-    @classmethod
-    def _override_mapped_member_types(cls):
-        return [PTreeSettings, PTreeAction]
 
     @property
     def all(self):
@@ -108,7 +105,7 @@ class PTreeMappedGroup(PTreeMappedOverrideBase):  # noqa,pylint: disable=too-few
 
 
 class PTreeLogicalGroupingWithStrRefs(PTreeLogicalGrouping):
-    _override_autoregister = False
+    override_autoregister = False
 
     @property
     def result(self):
@@ -124,8 +121,8 @@ class PTreeLogicalGroupingWithStrRefs(PTreeLogicalGrouping):
 
 
 class PTreeMappedRefs(PTreeMappedOverrideBase):  # noqa,pylint: disable=too-few-public-methods
-    _override_autoregister = False
-    _override_logical_grouping_type = PTreeLogicalGroupingWithStrRefs
+    override_autoregister = False
+    override_logical_grouping_type = PTreeLogicalGroupingWithStrRefs
 
     @classmethod
     def _override_keys(cls):
@@ -341,11 +338,11 @@ class TestPTree(utils.BaseTestCase):
             self.assertEqual(leaf.name, 'item1')
             for member in leaf.refs.members:
                 for item in member:
-                    self.assertTrue(item._override_name in ['and', 'or',
-                                                            'ref4'])
-                    if item._override_name == 'or':
+                    self.assertTrue(item.override_name in ['and', 'or',
+                                                           'ref4'])
+                    if item.override_name == 'or':
                         results.extend(item.result)
-                    elif item._override_name == 'and':
+                    elif item.override_name == 'and':
                         results.extend(item.result)
 
         self.assertEqual(sorted(results),
@@ -394,9 +391,9 @@ class TestPTree(utils.BaseTestCase):
         resolved = []
         for leaf in root.leaf_sections:
             resolved.append(leaf.resolve_path)
-            resolved.append(leaf.group._override_path)
+            resolved.append(leaf.group.override_path)
             for setting in leaf.group.members:
-                resolved.append(setting._override_path)
+                resolved.append(setting.override_path)
 
         expected = ['resolvtest.myroot.sub1.sub2.leaf1',
                     'resolvtest.myroot.sub1.sub2.leaf1.group',

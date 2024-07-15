@@ -30,19 +30,19 @@ class TestPTreeOverrideBase(PTreeOverrideBase):
     """ Base class for test override properties. """
     # Disable auto-registration to avoid conflicts across tests. All tests must
     # register the overrides they need.
-    _override_autoregister = False
+    override_autoregister = False
 
 
 class TestPTreeMappedOverrideBase(PTreeMappedOverrideBase):
     """ Base class for test override mapping properties. """
     # Disable auto-registration to avoid conflicts across tests. All tests must
     # register the overrides they need.
-    _override_autoregister = False
+    override_autoregister = False
 
 
 class PTreeLogicalGroupingWithBoolValues(PTreeLogicalGrouping):
     """ Test logical grouping with bool values. """
-    _override_autoregister = False
+    override_autoregister = False
 
     @staticmethod
     def fetch_item_result(item):
@@ -51,7 +51,7 @@ class PTreeLogicalGroupingWithBoolValues(PTreeLogicalGrouping):
 
 class PTreeLogicalGroupingWithCheckRefs(PTreeLogicalGrouping):
     """ Test logical grouping with string check refs. """
-    _override_autoregister = False
+    override_autoregister = False
 
     def get_check_item(self, name):
         checks = self.context['checks']
@@ -77,13 +77,13 @@ class PTreeLogicalGroupingWithCheckRefs(PTreeLogicalGrouping):
 
 class Vars(TestPTreeOverrideBase):
     """ Test vars property. """
-    _override_keys = []
+    override_keys = []
     _allow_subtree = False
 
 
 class Input(TestPTreeOverrideBase):
     """ Test input property. """
-    _override_keys = []
+    override_keys = []
 
     @property
     def path(self):
@@ -92,7 +92,7 @@ class Input(TestPTreeOverrideBase):
 
 class VarOps(TestPTreeOverrideBase):
     """ Test varops property. """
-    _override_keys = []
+    override_keys = []
 
     @property
     def result(self):
@@ -118,19 +118,19 @@ class VarOps(TestPTreeOverrideBase):
 
 class Check(TestPTreeOverrideBase):
     """ Test check property. """
-    _override_keys = []
+    override_keys = []
 
     @property
     def name(self):
-        return self._override_name
+        return self.override_name
 
     @property
     def items(self):
-        section = PTreeSection(self._override_name, self.content,
-                               resolve_path=self._override_path,
+        section = PTreeSection(self.override_name, self.content,
+                               resolve_path=self.override_path,
                                context=self.context)
         for item in section:
-            log.debug("check item: label=%s, type=%s", self._override_name,
+            log.debug("check item: label=%s, type=%s", self.override_name,
                       type(item))
             yield item
 
@@ -150,7 +150,7 @@ class Check(TestPTreeOverrideBase):
 
 class ValueCheck(TestPTreeOverrideBase):
     """ Test varcheck property. """
-    _override_keys = ['valuecheck']
+    override_keys = ['valuecheck']
 
     @property
     def key(self):
@@ -170,7 +170,7 @@ class ValueCheck(TestPTreeOverrideBase):
 
 class Checks(TestPTreeOverrideBase):
     """ Test checks property. """
-    _override_keys = []
+    override_keys = []
     _allow_subtree = False
 
     def __init__(self, *args, **kwargs):
@@ -184,20 +184,20 @@ class Checks(TestPTreeOverrideBase):
     def __getattr__(self, name):
         log.debug("%s.__getattr__(%s)", self.__class__.__name__, name)
         return Check(self.root, name, self.content[name],
-                     self._override_path,
+                     self.override_path,
                      context=self.context)
 
     def __iter__(self):
         log.debug("%s.__iter__()", self.__class__.__name__)
         for name in self.content:
             yield Check(self.root, name, self.content[name],
-                        self._override_path,
+                        self.override_path,
                         context=self.context)
 
 
 class TypeCheck(TestPTreeOverrideBase):
     """ Test check property. """
-    _override_keys = []
+    override_keys = []
 
     @property
     def value(self):
@@ -215,9 +215,9 @@ class TypeCheck(TestPTreeOverrideBase):
 
 class Requires(TestPTreeMappedOverrideBase):
     """ Test requires property. """
-    _override_keys = []
-    _override_members = [TypeCheck, VarOps]
-    _override_logical_grouping_type = PTreeLogicalGroupingWithCheckRefs
+    override_keys = []
+    override_members = [TypeCheck, VarOps]
+    override_logical_grouping_type = PTreeLogicalGroupingWithCheckRefs
 
     @property
     def result(self):
@@ -236,7 +236,7 @@ class Requires(TestPTreeMappedOverrideBase):
 
 class Decision(TestPTreeMappedOverrideBase):
     """ Test decision property. """
-    _override_keys = []
+    override_keys = []
     # NOTE: no members since we are using mapping to get the implicit
     #       PTreeLogicalGrouping.
 
@@ -252,7 +252,7 @@ class Decision(TestPTreeMappedOverrideBase):
 
 class Raises(TestPTreeOverrideBase):
     """ Test raises property. """
-    _override_keys = []
+    override_keys = []
 
     @property
     def type(self):
@@ -265,18 +265,18 @@ class Raises(TestPTreeOverrideBase):
 
 class Conclusion(TestPTreeMappedOverrideBase):
     """ Test conclusion property. """
-    _override_keys = []
-    _override_members = [Decision, Raises]
+    override_keys = []
+    override_members = [Decision, Raises]
 
 
 class Conclusions(TestPTreeOverrideBase):
     """ Test conclusions property. """
-    _override_keys = []
+    override_keys = []
     _allow_subtree = False
 
     def __iter__(self):
         for name, content in self.content.items():
-            s = PTreeSection(self._override_name,
+            s = PTreeSection(self.override_name,
                              {name: {'conclusion': content}},
                              context=self.context)
             for c in s.leaf_sections:
@@ -286,23 +286,23 @@ class Conclusions(TestPTreeOverrideBase):
 
 class MapMember1(ValueCheck):
     """ Test map member property. """
-    _override_keys = []
+    override_keys = []
 
 
 class MapMember2(ValueCheck):
     """ Test map member property. """
-    _override_keys = []
+    override_keys = []
 
 
 class MapPrimary(TestPTreeMappedOverrideBase):
     """ Test map primary property. """
-    _override_keys = []
-    _override_members = [MapMember1, MapMember2, Requires]
+    override_keys = []
+    override_members = [MapMember1, MapMember2, Requires]
 
 
 class DeepMember2(ValueCheck):
     """ Test map member property. """
-    _override_keys = []
+    override_keys = []
 
     @property
     def deepattr(self):
@@ -311,11 +311,11 @@ class DeepMember2(ValueCheck):
 
 class DeepMember1(TestPTreeMappedOverrideBase):
     """ Test map member property. """
-    _override_keys = []
-    _override_members = [DeepMember2]
+    override_keys = []
+    override_members = [DeepMember2]
 
 
 class DeepMap(TestPTreeMappedOverrideBase):
     """ Test map primary property. """
-    _override_keys = []
-    _override_members = [DeepMember1]
+    override_keys = []
+    override_members = [DeepMember1]

@@ -30,7 +30,7 @@ class MappedMemberPrimaryConflict(Exception):
     primary.
     """
     def __init__(self, member_cls, new_primary, existing_primary):
-        super().__init__(f"trying to set {member_cls} _override_primary "
+        super().__init__(f"trying to set {member_cls} override_primary "
                          f"to {new_primary} but it is "
                          f"already set to {existing_primary}")
 
@@ -108,7 +108,7 @@ class OverrideRegistry():
         if necessary link to any mappin primaries it maybe associated with.
         """
         try:
-            keys = override_cls._get_override_keys_back_compat()
+            keys = override_cls.get_override_keys_back_compat()
         except AttributeError:
             return
 
@@ -134,19 +134,19 @@ class OverrideRegistry():
                 REGISTERED_OVERRIDES[key] = [override_cls]
 
         members = []
-        if hasattr(override_cls, '_get_override_members_back_compat'):
-            members = override_cls._get_override_members_back_compat()
+        if hasattr(override_cls, 'override_members'):
+            members = override_cls.override_members
 
         # Reverse link members to their mapping primary
         for member in members:
-            if member._override_primary:
-                if member._override_primary != override_cls:
+            if member.override_primary:
+                if member.override_primary != override_cls:
                     raise MappedMemberPrimaryConflict(
                                             member.__name__,
                                             override_cls.__name__,
-                                            member._override_primary.__name__)
+                                            member.override_primary.__name__)
 
-            member._override_primary = override_cls
+            member.override_primary = override_cls
 
     @classmethod
     def register(cls, to_register: list):
@@ -163,7 +163,7 @@ class OverrideRegistry():
         """
         Unregister a property (and it's keys) from the registry. """
         try:
-            keys = override_cls._get_override_keys_back_compat()
+            keys = override_cls.get_override_keys_back_compat()
         except AttributeError:
             return
 
@@ -180,13 +180,13 @@ class OverrideRegistry():
                     REGISTERED_OVERRIDES[key].remove(override_cls)
 
         # Reverse link members to their mapping primary
-        if hasattr(override_cls, '_get_override_members_back_compat'):
-            members = override_cls._get_override_members_back_compat()
+        if hasattr(override_cls, 'override_members'):
+            members = override_cls.override_members
         else:
             members = []
 
         for member in members:
-            member._override_primary = None
+            member.override_primary = None
 
     @classmethod
     def unregister(cls, to_unregister: list):
@@ -201,9 +201,44 @@ class OverrideRegistry():
 
 class OverrideMeta(type):
     """ Used to automatically register property classes on module load. """
+    FWD_COMPAT_CLS_METHOD = ['get_override_keys_back_compat']
+    FWD_COMPAT_CLS_ATTR = ['_override_keys', '_override_auto_implicit_member',
+                           '_override_autoregister',
+                           '_override_logical_grouping_type',
+                           '_override_members']
+    BACK_COMPAT_INST_ATTR = ['override_name', 'override_path']
+
+    @classmethod
+    def migrate_protected_attrs(mcs, cls):
+        """
+        In order to make the changes necessary to switch private attributes to
+        public while not breaking any code that is using these attributes we
+        allow grace period where we map old format attributes to new.
+
+        This will be removed in a future release.
+        """
+        to_map = {}
+        for attr, value in cls.__dict__.items():
+            if attr in cls.FWD_COMPAT_CLS_METHOD:
+                to_map['_' + attr] = value
+            elif attr in cls.BACK_COMPAT_INST_ATTR + cls.FWD_COMPAT_CLS_ATTR:
+                if attr in cls.BACK_COMPAT_INST_ATTR:
+                    newattr = '_' + attr
+                else:
+                    newattr = attr.lstrip('_')
+
+                try:
+                    to_map[newattr] = getattr(cls, attr)()
+                except TypeError:
+                    to_map[newattr] = getattr(cls, attr)
+
+        for k, v in to_map.items():
+            setattr(cls, k, v)
+
     def __init__(cls, _name, _mro, _members):
-        if hasattr(cls, '_override_autoregister'):
-            if not cls._override_autoregister:
+        cls.migrate_protected_attrs(cls)
+        if hasattr(cls, 'override_autoregister'):
+            if not cls.override_autoregister:
                 return
 
         OverrideRegistry.register([cls])
@@ -212,20 +247,20 @@ class OverrideMeta(type):
 class PTreeOverrideBase(metaclass=OverrideMeta):  # noqa, pylint: disable=too-many-instance-attributes
     """ Base class for all property implementations. """
     # For internal use only
-    _override_primary = None
+    override_primary = None
 
     # If set to True this allows a property to define a subtree i.e. branches
     # and leaves with their own properties.
-    _allow_subtree: bool = True
+    allow_subtree: bool = True
 
     # This must be set to a list in order for the property to be registered. If
     # list if empty the name of the property class is used as the key.
-    _override_keys: list | None = None
+    override_keys: list | None = None
 
     # By default all implementations of this class will be registered as
     # override properties. This can be set to False of this behaviour is
     # undesired.
-    _override_autoregister: bool = True
+    override_autoregister: bool = True
 
     # By default when a mapping member is found we check that it's primary has
     # also been discovered and if not one is implicitly registered. If a
@@ -233,38 +268,27 @@ class PTreeOverrideBase(metaclass=OverrideMeta):  # noqa, pylint: disable=too-ma
     # mapping then this can be set to False. This does mean that the mapping
     # will need at least one other member property that has this set to True
     # to be able to trigger an implicit primary registration.
-    _override_auto_implicit_member: bool = True
+    override_auto_implicit_member: bool = True
 
     @classmethod
-    def _get_override_keys_back_compat(cls):
+    def get_override_keys_back_compat(cls):
         """
         To support backwards compatibility with propertree.py we support old
         and new ways of defining keys.
         """
-        try:
+        if hasattr(cls, 'override_keys'):
+            keys = cls.override_keys
+        else:
             # DEPRECATED: will remove at some point
-            keys = cls._override_keys()  # pylint: disable=not-callable
-        except TypeError:
-            keys = cls._override_keys
+            try:
+                keys = cls._override_keys()  # pylint: disable=not-callable
+            except TypeError:
+                keys = cls._override_keys
 
         if keys is None:
             return []
 
         return keys or [cls.__name__.lower()]
-
-    @classmethod
-    def _get_override_members_back_compat(cls):
-        """
-        To support backwards compatibility with propertree.py we support old
-        and new ways of defining mapping members.
-        """
-        if hasattr(cls, '_override_mapped_member_types'):
-            return cls._override_mapped_member_types()
-
-        if hasattr(cls, '_override_members'):
-            return cls._override_members
-
-        return []
 
     def __init__(self,
                  root: PTreeSection,
@@ -314,21 +338,21 @@ class PTreeOverrideBase(metaclass=OverrideMeta):  # noqa, pylint: disable=too-ma
             self.group_id = None
 
     @property
-    def _override_name(self):
+    def override_name(self):
         """ This is the key name used to register this override. """
         return self._override_resolved_name
 
     @property
-    def _override_parent(self):
+    def override_parent(self):
         if not self._override_parent_path:
             return None
 
         return self.manager.property_cache[self._override_parent_path]
 
     @property
-    def _override_path(self):
+    def override_path(self):
         """ This is the full resolve path for this override object. """
-        return f"{self._override_resolve_path}.{self._override_name}"
+        return f"{self._override_resolve_path}.{self.override_name}"
 
     def _len_query(self):
         """ The way we query the size/length of a property differs depending
@@ -349,7 +373,7 @@ class PTreeOverrideBase(metaclass=OverrideMeta):  # noqa, pylint: disable=too-ma
 
     def __len__(self):
         log.info("%s.__len__()", self.__class__.__name__)
-        stack = self.manager.get_property(self._override_path)
+        stack = self.manager.get_property(self.override_path)
         query = self._len_query()
         items = []
         for item in stack:
@@ -369,11 +393,11 @@ class PTreeOverrideBase(metaclass=OverrideMeta):  # noqa, pylint: disable=too-ma
     def __iter__(self):
         log.info("%s.__iter__()", self.__class__.__name__)
         buildinfo = BuildInfo(self._iter_query, fetch_whole_stack=True)
-        yield from self.manager.make_property(self.root, self._override_path,
+        yield from self.manager.make_property(self.root, self.override_path,
                                               self.context, buildinfo)
 
     def _get_override_attribute(self, name):
-        log.info("%s._get_override_attribute(%s)", self._override_name, name)
+        log.info("%s._get_override_attribute(%s)", self.override_name, name)
         if name in self.content:
             return self.content[name]
 
@@ -396,7 +420,7 @@ class PTreeOverrideBase(metaclass=OverrideMeta):  # noqa, pylint: disable=too-ma
 
 class PTreeOverrideLiteralType(PTreeOverrideBase):
     """ Property for literal types. """
-    _override_keys = ['__override_literal_type__']
+    override_keys = ['__override_literal_type__']
 
     @staticmethod
     def has_valid_type(content):
@@ -436,11 +460,11 @@ class PTreeLogicalGrouping(PTreeOverrideBase):
     used as a property attribute i.e. it cannot be used as a property in its
     own right.
     """
-    _override_keys = ['and', 'or', 'nand', 'not', 'nor', 'xor']
+    override_keys = ['and', 'or', 'nand', 'not', 'nor', 'xor']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._override_group_stats = {'items_executed': 0}
+        self.override_group_stats = {'items_executed': 0}
 
     @property
     def _iter_query(self):
@@ -486,7 +510,7 @@ class PTreeLogicalGrouping(PTreeOverrideBase):
 
     @property
     def group_name(self):
-        return self._override_name.lower()
+        return self.override_name.lower()
 
     @property
     def group_op_map(self):
@@ -507,7 +531,7 @@ class PTreeLogicalGrouping(PTreeOverrideBase):
                                                              not None),
                           allow_implicit_primary=not allow_members)
         yield from self.manager.make_all_properties(
-                                                 self._override_path,
+                                                 self.override_path,
                                                  self.root,
                                                  self.context,
                                                  query,
@@ -536,7 +560,7 @@ class PTreeLogicalGrouping(PTreeOverrideBase):
                  self.__class__.__name__)
         log.info("%s.%s.result (path=%s, group_ids=%s)",
                  self.__class__.__name__, self.group_name,
-                 self._override_path, self.group_ids)
+                 self.override_path, self.group_ids)
         results = []
         for item in self.get_items():
             log.info("%s.%s: fetching result from %s (mapping_ids=%s, "
@@ -545,7 +569,7 @@ class PTreeLogicalGrouping(PTreeOverrideBase):
                      item.__class__.__name__, item.mapping_ids,
                      item.group_ids)
             result = self.fetch_item_result(item)
-            self._override_group_stats['items_executed'] += 1
+            self.override_group_stats['items_executed'] += 1
             results.append(result)
             if self.is_exit_condition_met(self.group_name, result):
                 break
@@ -564,24 +588,24 @@ class PTreeLogicalGrouping(PTreeOverrideBase):
 class PTreeMappedOverrideBase(PTreeOverrideBase):
     """ Base class for implementations of mapped properties. """
     # Add one or more property classes that will be members of this mapping.
-    _override_members: list = []
+    override_members: list = []
 
     # Set this to optionally override the globally registered implementation of
     # PTreeLogicalGrouping with a custom variant to be used only with this
     # property.
-    _override_logical_grouping_type = None
+    override_logical_grouping_type = None
 
     def __iter__(self):
         """ Generator giving all items of this property. """
         log.info("%s.__iter__()", self.__class__.__name__)
         query = PropQuery(allow_implicit_primary=self.is_implicit_primary)
         buildinfo = BuildInfo(query, fetch_whole_stack=True)
-        yield from self.manager.make_property(self.root, self._override_path,
+        yield from self.manager.make_property(self.root, self.override_path,
                                               self.context, buildinfo)
 
     @property
     def _member_keys_logical_grouping(self):
-        keys = PTreeLogicalGrouping._get_override_keys_back_compat()[:]
+        keys = PTreeLogicalGrouping.get_override_keys_back_compat()[:]
         # property names are registered this way so do this to match for
         # name lookups.
         keys = [key.replace('-', '_') for key in keys]
@@ -591,13 +615,13 @@ class PTreeMappedOverrideBase(PTreeOverrideBase):
     def _member_keys(self):
         keys = []
         # make sure we don't modify the original
-        members = self._get_override_members_back_compat()[:]
+        members = self.override_members[:]
         # Include implicit member keys. We allow members to be grouped and
         # support items of type literal.
         members.extend([PTreeOverrideLiteralType, PTreeLogicalGrouping])
 
         for member in members:
-            keys += member._get_override_keys_back_compat()
+            keys += member.get_override_keys_back_compat()
 
         # property names are registered this way so do this to match for
         # name lookups.
@@ -611,7 +635,7 @@ class PTreeMappedOverrideBase(PTreeOverrideBase):
 
         # First search for all members excluding implementations of
         # PTreeLogicalGrouping.
-        propfilter = [f"{self._override_path}.{name}" for name in
+        propfilter = [f"{self.override_path}.{name}" for name in
                       self._member_keys
                       if name not in self._member_keys_logical_grouping]
         query = PropQuery(mapping_id=self.mapping_id, group_id=self.group_id,
@@ -625,7 +649,7 @@ class PTreeMappedOverrideBase(PTreeOverrideBase):
         # is because each item will have its own group id and is therefore
         # independent of others i.e. iterating over an item won't give you
         # the stack.
-        propfilter = [f"{self._override_path}.{name}" for name in
+        propfilter = [f"{self.override_path}.{name}" for name in
                       self._member_keys_logical_grouping]
         query = PropQuery(mapping_id=self.mapping_id, group_id=self.group_id)
         buildinfo = BuildInfo(query, fetch_whole_stack=True)
@@ -641,11 +665,11 @@ class PTreeMappedOverrideBase(PTreeOverrideBase):
         query = PropQuery(allow_members=True, mapping_id=self.mapping_id,
                           allow_implicit_primary=True, group_id=self.group_id)
         buildinfo = BuildInfo(query)
-        path = f"{self._override_path}.{name}"
+        path = f"{self.override_path}.{name}"
         flat_path = self.manager.flatten_path(path)
 
         if flat_path not in self.manager.properties:
-            path = f"{self._override_path}.{name.replace('_', '-')}"
+            path = f"{self.override_path}.{name.replace('_', '-')}"
             flat_path = self.manager.flatten_path(path)
 
         if flat_path not in self.manager.properties:
@@ -1164,12 +1188,12 @@ class PTreeOverrideManager(UserDict):
         same branch property level we need to flatten their full path when
         searching for them since that is how they are registered.
         """
-        group_keys = PTreeLogicalGrouping._get_override_keys_back_compat()
+        group_keys = PTreeLogicalGrouping.get_override_keys_back_compat()
         map_primary_keys = []
         for cls_list in REGISTERED_OVERRIDES.values():
             for cls in cls_list:
                 if issubclass(cls, PTreeMappedOverrideBase):
-                    keys = cls._get_override_keys_back_compat()
+                    keys = cls.get_override_keys_back_compat()
                     map_primary_keys.extend(keys)
 
         split_path = list(reversed(path.split('.')))
@@ -1338,14 +1362,14 @@ class PTreeOverrideManager(UserDict):
         """
         log.debug("fetching primary for %s", member_path)
         member_name = member_path.rpartition('.')[2]
-        return self._get_override_handler(member_name)._override_primary
+        return self._get_override_handler(member_name).override_primary
 
     def _add_implicit_member_primary(self, primary_cls, member_path, content,
                                      parent_state, properties):
         """
         Create an implicit primary property for the member at member_path.
         """
-        primary_key = primary_cls._get_override_keys_back_compat()[0]
+        primary_key = primary_cls.get_override_keys_back_compat()[0]
         parent_path = member_path.rpartition('.')[0]
         primary_path = f"{parent_path}.{primary_key}"
         log.info("implicitly registering mapping primary '%s' at "
@@ -1379,7 +1403,7 @@ class PTreeOverrideManager(UserDict):
 
         log.info("ensuring member %s primary %s exists (path_context=%s)",
                  member_path, primary_cls, path_context)
-        primary_key = primary_cls._get_override_keys_back_compat()[0]
+        primary_key = primary_cls.get_override_keys_back_compat()[0]
         primary_prop = properties.get(primary_key)
 
         parent_gid = None
@@ -1460,9 +1484,9 @@ class PTreeOverrideManager(UserDict):
             log.info("primary '%s' does not exist - creating implicit",
                      primary_key)
 
-        if not node_cls._override_auto_implicit_member:
+        if not node_cls.override_auto_implicit_member:
             log.debug("skipping create implicit primary for %s since "
-                      "_override_auto_implicit_member=False", member_path)
+                      "override_auto_implicit_member=False", member_path)
             return None
 
         return self._add_implicit_member_primary(primary_cls,
@@ -1496,7 +1520,7 @@ class PTreeOverrideManager(UserDict):
         if issubclass(parent_cls, PTreeMappedOverrideBase):
             # its a grouped mapping member, let's make sure we are using the
             # grouping type from this mapping.
-            alt_cls = parent_cls._override_logical_grouping_type
+            alt_cls = parent_cls.override_logical_grouping_type
             if alt_cls:
                 log.info("switching %s for %s", node_cls, alt_cls)
                 node_cls = alt_cls
@@ -1574,8 +1598,7 @@ class PTreeOverrideManager(UserDict):
         if issubclass(prop_cls, PTreeLogicalGrouping):
             return True
 
-        valid_members = [m.__name__ for m in parent_cls.
-                         _get_override_members_back_compat()]
+        valid_members = [m.__name__ for m in parent_cls.override_members]
         raise PropertyIsNotAMember(f"property {prop_cls.__name__} inside "
                                    f"mapping {parent_cls.__name__} but is "
                                    "not a member of that mapping. Valid "
@@ -1610,11 +1633,11 @@ class PTreeOverrideManager(UserDict):
                 if parent_state:
                     # Don't tokenise property attributes
                     parent = parent_state['cls']
-                    if not parent._allow_subtree or name in dir(parent):
+                    if not parent.allow_subtree or name in dir(parent):
                         log.info("not entering %s.%s: subtree_allowed=%s "
                                  "is_attribute=%s", parent.__name__.lower(),
                                  name,
-                                 parent._allow_subtree,
+                                 parent.allow_subtree,
                                  name in dir(parent))
                         continue
 
@@ -1699,7 +1722,7 @@ class PTreeOverrideManager(UserDict):
                     self._mark_new_branch(root_path, parent_branch)
                     tree = ChainMap(tree, subtree)
         elif PTreeOverrideLiteralType.has_valid_type(content):
-            name = PTreeOverrideLiteralType._get_override_keys_back_compat()[0]
+            name = PTreeOverrideLiteralType.get_override_keys_back_compat()[0]
             path = f"{root_path}.{name}"
             node_cls = self._get_override_handler(name)
             subtree = self._build_branch_property(path, node_cls, content,

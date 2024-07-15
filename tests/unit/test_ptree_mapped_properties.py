@@ -29,7 +29,7 @@ from . import properties, utils
 
 
 class PTreeAssertionAttr(PTreeOverrideBase):
-    _override_autoregister = False
+    override_autoregister = False
 
     @classmethod
     def _override_keys(cls):
@@ -47,15 +47,12 @@ class PTreeAssertionAttr(PTreeOverrideBase):
 
 
 class PTreeAssertion(PTreeMappedOverrideBase):
-    _override_autoregister = False
+    override_autoregister = False
+    override_members = [PTreeAssertionAttr]
 
     @classmethod
     def _override_keys(cls):
         return ['assertion']
-
-    @classmethod
-    def _override_mapped_member_types(cls):
-        return [PTreeAssertionAttr]
 
     @property
     def result(self):
@@ -63,31 +60,25 @@ class PTreeAssertion(PTreeMappedOverrideBase):
 
 
 class PTreeAssertions(PTreeMappedOverrideBase):  # noqa,pylint: disable=too-few-public-methods
-    _override_autoregister = False
+    override_autoregister = False
+    override_members = [PTreeAssertion]
 
     @classmethod
     def _override_keys(cls):
         return ['assertions']
 
-    @classmethod
-    def _override_mapped_member_types(cls):
-        return [PTreeAssertion]
-
 
 class GroupedLiteralType(PTreeOverrideLiteralType):  # noqa,pylint: disable=too-few-public-methods
-    _override_autoregister = False
+    override_autoregister = False
 
 
 class PTreeStrGroups(PTreeMappedOverrideBase):  # noqa,pylint: disable=too-few-public-methods
-    _override_autoregister = False
+    override_autoregister = False
+    override_members = [GroupedLiteralType]
 
     @classmethod
     def _override_keys(cls):
         return ['strgroups']
-
-    @classmethod
-    def _override_mapped_member_types(cls):
-        return [GroupedLiteralType]
 
 
 class TestPTreeMappedProperties(utils.BaseTestCase):
@@ -121,10 +112,10 @@ class TestPTreeMappedProperties(utils.BaseTestCase):
         root = PTreeSection('mappingtest', yaml.safe_load(_yaml))
         checked = []
         for leaf in root.leaf_sections:
-            checked.append(leaf.assertions._override_name)
+            checked.append(leaf.assertions.override_name)
             for assertion in leaf.assertions.members:
                 self.assertEqual(len(assertion), 1)
-                checked.append(assertion._override_name)
+                checked.append(assertion.override_name)
                 self.assertEqual(type(assertion), PTreeAssertion)
                 self.assertEqual(type(assertion.key), PTreeAssertionAttr)
                 checked.append(assertion.key)
@@ -153,12 +144,12 @@ class TestPTreeMappedProperties(utils.BaseTestCase):
         root = PTreeSection('mappingtest', yaml.safe_load(_yaml))
         checked = []
         for leaf in root.leaf_sections:
-            checked.append(leaf.assertions._override_name)
+            checked.append(leaf.assertions.override_name)
             self.assertEqual(type(leaf.assertions), PTreeAssertions)
             for assertion in leaf.assertions.members:
                 self.assertEqual(type(assertion), PTreeAssertion)
                 self.assertEqual(len(assertion), 1)
-                checked.append(assertion._override_name)
+                checked.append(assertion.override_name)
                 checked.append(assertion.key)
                 self.assertEqual(assertion.key, 'key1')
                 self.assertEqual(assertion.value1, 1)
@@ -191,10 +182,10 @@ class TestPTreeMappedProperties(utils.BaseTestCase):
         root = PTreeSection('mappingtest', yaml.safe_load(_yaml))
         checked = []
         for leaf in root.leaf_sections:
-            checked.append(leaf.assertions._override_name)
+            checked.append(leaf.assertions.override_name)
             for assertion in leaf.assertions.members:
                 self.assertEqual(len(assertion), 2)
-                checked.append(assertion._override_name)
+                checked.append(assertion.override_name)
                 for attrs in assertion:
                     checked.append(attrs.key)
                     if attrs.key == 'key1':
@@ -235,7 +226,7 @@ class TestPTreeMappedProperties(utils.BaseTestCase):
         root = PTreeSection('mappingtest', yaml.safe_load(_yaml))
         checked = []
         for leaf in root.leaf_sections:
-            checked.append(leaf.assertions._override_name)
+            checked.append(leaf.assertions.override_name)
             self.assertEqual(type(leaf.assertions), PTreeAssertions)
             self.assertEqual(len(leaf.assertions), 1)
             self.assertEqual(len(leaf.assertions.assertion), 2)
@@ -243,7 +234,7 @@ class TestPTreeMappedProperties(utils.BaseTestCase):
             for assertion in leaf.assertions.members:
                 for item in assertion:
                     self.assertEqual(len(item), 2)
-                    self.assertEqual(item._override_name, 'assertion')
+                    self.assertEqual(item.override_name, 'assertion')
                     checked.append(str(item.key))
                     if item.key == 'key1':
                         self.assertEqual(item.key, 'key1')
@@ -278,7 +269,7 @@ class TestPTreeMappedProperties(utils.BaseTestCase):
         root = PTreeSection('mappingtest', yaml.safe_load(_yaml))
         checked = []
         for leaf in root.leaf_sections:
-            checked.append(leaf.assertions._override_name)
+            checked.append(leaf.assertions.override_name)
             self.assertEqual(type(leaf.assertions), PTreeAssertions)
             self.assertEqual(len(leaf.assertions), 1)
             self.assertEqual(len(leaf.assertions.assertion), 2)
@@ -286,7 +277,7 @@ class TestPTreeMappedProperties(utils.BaseTestCase):
             for assertion in leaf.assertions.members:
                 for item in assertion:
                     self.assertEqual(len(item), 2)
-                    self.assertEqual(item._override_name, 'assertion')
+                    self.assertEqual(item.override_name, 'assertion')
                     checked.append(str(item.key))
                     if item.key == 'key1':
                         self.assertEqual(item.key, 'key1')
@@ -327,13 +318,13 @@ class TestPTreeMappedProperties(utils.BaseTestCase):
         root = PTreeSection('mappingtest', yaml.safe_load(_yaml))
         checked = []
         for leaf in root.leaf_sections:
-            checked.append(leaf.assertions._override_name)
+            checked.append(leaf.assertions.override_name)
             for member in leaf.assertions.members:
                 self.assertEqual(len(member), 1)
-                checked.append(member._override_name)
-                self.assertEqual(member._override_name, 'and')
+                checked.append(member.override_name)
+                self.assertEqual(member.override_name, 'and')
                 self.assertEqual(member.result, True)
-                num_items = member._override_group_stats['items_executed']
+                num_items = member.override_group_stats['items_executed']
                 self.assertEqual(num_items, 2)
 
         self.assertEqual(checked, ['assertions', 'and'])
@@ -359,13 +350,13 @@ class TestPTreeMappedProperties(utils.BaseTestCase):
         root = PTreeSection('mappingtest', yaml.safe_load(_yaml))
         checked = []
         for leaf in root.leaf_sections:
-            checked.append(leaf.assertions._override_name)
+            checked.append(leaf.assertions.override_name)
             for member in leaf.assertions.members:
                 self.assertEqual(len(member), 1)
-                checked.append(member._override_name)
-                self.assertEqual(member._override_name, 'and')
+                checked.append(member.override_name)
+                self.assertEqual(member.override_name, 'and')
                 self.assertEqual(member.result, True)
-                num_items = member._override_group_stats['items_executed']
+                num_items = member.override_group_stats['items_executed']
                 self.assertEqual(num_items, 2)
 
         self.assertEqual(checked, ['assertions', 'and'])
@@ -397,7 +388,7 @@ class TestPTreeMappedProperties(utils.BaseTestCase):
                             members.append(item.__class__)
                             self.assertTrue(item.result)
                             num_items = \
-                                item._override_group_stats['items_executed']
+                                item.override_group_stats['items_executed']
                             self.assertEqual(num_items, 3)
         finally:
             OverrideRegistry.unregister([group_type])
@@ -414,9 +405,9 @@ class TestPTreeMappedProperties(utils.BaseTestCase):
         """
         vals = []
         for optgroup in assertiongroup:
-            self.assertEqual(optgroup._override_name, opname)
+            self.assertEqual(optgroup.override_name, opname)
             for member in optgroup:
-                if member._override_name == 'assertion':
+                if member.override_name == 'assertion':
                     if opname == 'and':
                         # i.e. num of assertions n/i nested
                         self.assertEqual(len(member), 2)
@@ -426,7 +417,7 @@ class TestPTreeMappedProperties(utils.BaseTestCase):
                     self.assertEqual(type(member), PTreeAssertion)
                     for assertion in member:
                         self.assertEqual(len(assertion), 1)
-                        self.assertEqual(assertion._override_name, 'assertion')
+                        self.assertEqual(assertion.override_name, 'assertion')
                         vals.append(assertion.key)
                 else:
                     self.assertEqual(len(member), 1)
@@ -461,7 +452,7 @@ class TestPTreeMappedProperties(utils.BaseTestCase):
             self.assertEqual(type(leaf.assertions), PTreeAssertions)
             self.assertEqual(len(leaf.assertions), 1)
             for assertions in leaf.assertions:
-                self.assertEqual(assertions._override_name, 'assertions')
+                self.assertEqual(assertions.override_name, 'assertions')
                 self.assertEqual(len(assertions), 2)
                 for assertiongroup in assertions:
                     self.assertEqual(len(assertiongroup), 1)

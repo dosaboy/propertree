@@ -27,7 +27,7 @@ from . import utils
 
 
 class PTreeStrProp(PTreeOverrideBase):
-    _override_autoregister = False
+    override_autoregister = False
 
     @classmethod
     def _override_keys(cls):
@@ -45,7 +45,7 @@ class PTreeStrProp(PTreeOverrideBase):
 
 
 class PTreeDictProp(PTreeOverrideBase):  # noqa,pylint: disable=too-few-public-methods
-    _override_autoregister = False
+    override_autoregister = False
 
     @classmethod
     def _override_keys(cls):
@@ -53,15 +53,12 @@ class PTreeDictProp(PTreeOverrideBase):  # noqa,pylint: disable=too-few-public-m
 
 
 class PTreePropGroup(PTreeMappedOverrideBase):  # noqa,pylint: disable=too-few-public-methods
-    _override_autoregister = False
+    override_autoregister = False
+    override_members = [PTreeStrProp, PTreeDictProp]
 
     @classmethod
     def _override_keys(cls):
         return ['pgroup']
-
-    @classmethod
-    def _override_mapped_member_types(cls):
-        return [PTreeStrProp, PTreeDictProp]
 
 
 class TestPTreeSimpleProps(utils.BaseTestCase):
@@ -184,7 +181,7 @@ class TestPTreeMappedProps(utils.BaseTestCase):
                     self.assertTrue(type(member) in [PTreeStrProp,
                                                      PTreeDictProp])
                     for item in member:
-                        if item._override_name == 'strprop':
+                        if item.override_name == 'strprop':
                             self.assertEqual(type(item), PTreeStrProp)
                             vals.append(str(item))
                         else:
@@ -244,7 +241,7 @@ class TestPTreeMappedProps(utils.BaseTestCase):
             self.assertEqual(len(leaf.pgroup), 1)
             for pgroup in leaf.pgroup:
                 for member in pgroup:
-                    if member._override_name == 'pgroup':
+                    if member.override_name == 'pgroup':
                         # nested pgroup
                         self.assertEqual(type(member), PTreePropGroup)
                         self.assertEqual(len(member), 1)

@@ -40,7 +40,7 @@ And the following accompanying Python code:
 from propertree.propertree2 import PTreeOverrideBase, PTreeSection
 
 class Config(PTreeOverrideBase):
-  _override_keys = ['config']
+  override_keys = ['config']
 
 
 root = PTreeSection(MYYAML)
@@ -91,12 +91,12 @@ For example, here is some code to define a mapped property:
 from propertree.propertree2 import PTreeOverrideBase, PTreeMappedOverrideBase, PTreeSection
 
 class MapPrimary(PTreeMappedOverrideBase):
-  _override_keys = ['mapprimary']
-  _override_members = ['member1']
+  override_keys = ['mapprimary']
+  override_members = ['member1']
 
 
 class Member1(PTreeOverrideBase):
-  _override_keys = ['member1']
+  override_keys = ['member1']
 
 ...
 ```

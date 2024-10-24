@@ -112,11 +112,6 @@ class OverrideRegistry():
         except AttributeError:
             return
 
-        # backwards compatibility with old propertree override base. we
-        # can deprecate and remove this eventually.
-        if keys is not None and not isinstance(keys, list):
-            keys = keys()
-
         if not keys:
             return
 
@@ -166,11 +161,6 @@ class OverrideRegistry():
             keys = override_cls.get_override_keys_back_compat()
         except AttributeError:
             return
-
-        # backwards compatibility with old propertree override base. we
-        # can deprecate and remove this eventually.
-        if not isinstance(keys, list):
-            keys = keys()
 
         for key in keys:
             if key in REGISTERED_OVERRIDES:
@@ -276,15 +266,7 @@ class PTreeOverrideBase(metaclass=OverrideMeta):  # noqa, pylint: disable=too-ma
         To support backwards compatibility with propertree.py we support old
         and new ways of defining keys.
         """
-        if hasattr(cls, 'override_keys'):
-            keys = cls.override_keys
-        else:
-            # DEPRECATED: will remove at some point
-            try:
-                keys = cls._override_keys()  # pylint: disable=not-callable
-            except TypeError:
-                keys = cls._override_keys
-
+        keys = cls.override_keys
         if keys is None:
             return []
 

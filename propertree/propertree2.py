@@ -949,7 +949,7 @@ class BuildInfo():  # pylint: disable=too-few-public-methods
             return True
 
         if (item['path'] == self.path_filter or
-                not item['path'].startswith(self.path_filter)):
+                not item['path'].startswith(f"{self.path_filter}.")):
             log.info("%s is not descendant of %s - skipping",
                      item['path'], self.path_filter)
             return False
@@ -1294,7 +1294,7 @@ class PTreeOverrideManager(UserDict):
         at which point it, and all of its ancestors marked as non-leaf.
         """
         for branch_path, info in self._branches.items():
-            if path.startswith(branch_path):
+            if path.startswith(f"{branch_path}."):
                 info['is_leaf'] = False
 
         self._branches[path] = {'is_leaf': True, 'parent': parent_branch}

@@ -1429,6 +1429,9 @@ class TestLargeScript(TestPTree2Base):
         S2:
           input:
             path: F2
+        S2_1:
+          input:
+            path: F3
         """
         context = {}
         root = PTreeSection('script', yaml.safe_load(yaml_script1),
@@ -1436,10 +1439,11 @@ class TestLargeScript(TestPTree2Base):
         context['checks'] = {c.name: c for c in root.S1.checks}
         self.assertEqual(root.S1.input.path, "F1")
         self.assertEqual(root.S2.input.path, "F2")
+        self.assertEqual(root.S2_1.input.path, "F3")
         self.assertEqual(root.S1.vars.foo, "bar")
         labels = []
         self.assertEqual([e.name for e in root.leaf_sections],
-                         ['S1', 'S2'])
+                         ['S1', 'S2', 'S2_1'])
 
         for check in root.S1.checks:
             if check.override_name == 'mycheck':

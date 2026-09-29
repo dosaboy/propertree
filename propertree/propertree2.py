@@ -272,7 +272,7 @@ class PTreeOverrideBase(metaclass=OverrideMeta):  # noqa, pylint: disable=too-ma
 
         return keys or [cls.__name__.lower()]
 
-    def __init__(self,
+    def __init__(self,  # pylint: disable=too-many-positional-arguments
                  root: PTreeSection,
                  name: str,
                  content: dict,
@@ -669,7 +669,7 @@ class PTreeMappedOverrideBase(PTreeOverrideBase):
 
 class State(UserDict):
     """ Representation of property state. """
-    def __init__(self, content, node_cls, path, parent=None,
+    def __init__(self, content, node_cls, path, parent=None,   # noqa pylint: disable=too-many-positional-arguments,line-too-long
                  is_implicit_primary=False, has_implicit_primary=False,
                  mapping_ids=None, group_ids=None, path_context=None):
         """
@@ -738,7 +738,7 @@ class State(UserDict):
 class PropQuery():  # pylint: disable=too-many-instance-attributes
     """ Property query object. Provides a common way to query for properties.
     """
-    def __init__(self, mapping_id=None, group_id=None,
+    def __init__(self, mapping_id=None, group_id=None,  # noqa pylint: disable=too-many-positional-arguments,line-too-long
                  allow_members=True, allow_primaries=True,
                  allow_members_if_group_id_matches=False,
                  allow_grouped=False,
@@ -917,7 +917,7 @@ class PropQuery():  # pylint: disable=too-many-instance-attributes
 
 class BuildInfo():  # pylint: disable=too-few-public-methods
     """ Settings for building a property object. """
-    def __init__(self,
+    def __init__(self,  # noqa pylint: disable=too-many-positional-arguments,line-too-long
                  query: PropQuery,
                  path_filter: str | None = None,
                  fetch_whole_stack: bool = False,
@@ -1012,7 +1012,7 @@ class PropertyStateManager(UserList):
         if not self._has_grouped:
             self._assert_field_consistency('path')
 
-    def first(self, root, context, name, manager, buildinfo: BuildInfo):
+    def first(self, root, context, name, manager, buildinfo: BuildInfo):  # noqa pylint: disable=too-many-positional-arguments,line-too-long
         log.info("getting first item from stack (depth=%s) of '%s' "
                  "(%s)", len(self), name, buildinfo.query)
         for item in self:
@@ -1243,7 +1243,7 @@ class PTreeOverrideManager(UserDict):
 
         return prop[idx]
 
-    def make_property(self, root, path, context, buildinfo: BuildInfo,
+    def make_property(self, root, path, context, buildinfo: BuildInfo,  # noqa pylint: disable=too-many-positional-arguments,line-too-long
                       allow_global=False):
         flat_path = self.flatten_path(path)
         if flat_path in self.properties:
@@ -1267,7 +1267,7 @@ class PTreeOverrideManager(UserDict):
 
         yield from pstate.build_stack(root, context, self, buildinfo)
 
-    def make_all_branch_properties(self, root, path, context,
+    def make_all_branch_properties(self, root, path, context,  # noqa pylint: disable=too-many-positional-arguments,line-too-long
                                    query: PropQuery, skip_build):
         """
         Supports properties from branches. Does not support flat structure.
@@ -1279,7 +1279,7 @@ class PTreeOverrideManager(UserDict):
             yield from property_state.build_stack(root, context, self,
                                                   buildinfo)
 
-    def make_all_properties(self, root_path, root, context, query: PropQuery,
+    def make_all_properties(self, root_path, root, context, query: PropQuery,  # noqa pylint: disable=too-many-positional-arguments,line-too-long
                             fetch_whole_stack=False, skip_build=False):
         log.info("making all properties (%s, root_path=%s)", query, root_path)
         for path in self.properties:
@@ -1346,7 +1346,7 @@ class PTreeOverrideManager(UserDict):
         member_name = member_path.rpartition('.')[2]
         return self._get_override_handler(member_name).override_primary
 
-    def _add_implicit_member_primary(self, primary_cls, member_path, content,
+    def _add_implicit_member_primary(self, primary_cls, member_path, content,  # noqa pylint: disable=too-many-positional-arguments,line-too-long
                                      parent_state, properties):
         """
         Create an implicit primary property for the member at member_path.
@@ -1370,7 +1370,7 @@ class PTreeOverrideManager(UserDict):
         self._register_property(properties, primary_state, True)
         return primary_state
 
-    def _ensure_member_primary(self, member_path: str, node_cls, content,  # noqa, pylint: disable=too-many-locals,too-many-branches
+    def _ensure_member_primary(self, member_path: str, node_cls, content,  # noqa, pylint: disable=too-many-locals,too-many-branches,too-many-positional-arguments
                                properties: dict,
                                parent_state: State,
                                path_context=None):
@@ -1509,7 +1509,7 @@ class PTreeOverrideManager(UserDict):
 
         return node_cls
 
-    def _build_branch_property(self, path, node_cls, content, properties,
+    def _build_branch_property(self, path, node_cls, content, properties,  # noqa pylint: disable=too-many-positional-arguments,line-too-long
                                parent_info: dict, stacked, parent_branch,
                                path_context):
         log.info("new property: path=%s, parent=%s", path, parent_info)
@@ -1592,7 +1592,7 @@ class PTreeOverrideManager(UserDict):
         """
         return self.override_handlers[key][0]
 
-    def _build(self, root_path, content, parent_info, properties,   # noqa, pylint: disable=too-many-locals,too-many-branches,too-many-statements
+    def _build(self, root_path, content, parent_info, properties,   # noqa, pylint: disable=too-many-locals,too-many-branches,too-many-statements,too-many-positional-arguments
                stacked=False, path_context=None, parent_branch=None):
         log.debug("building root_path=%s (parent=%s)", root_path, parent_info)
         tree = {}
@@ -1737,7 +1737,7 @@ class BranchInfo():
         return self.path.rpartition('.')[2]
 
 
-class PTreeSection():  # noqa, pylint: disable=too-many-instance-attributes
+class PTreeSection():  # noqa, pylint: disable=too-many-instance-attributes,too-many-positional-arguments
     """ The representation of the property tree. """
     def __init__(self,
                  name: str,
